@@ -1,0 +1,75 @@
+.diagram-canvas {
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  padding: var(--space-md);
+}
+
+.diagram-canvas__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px dashed var(--rule);
+}
+
+.diagram-canvas__title {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.diagram-canvas__meta {
+  font-family: var(--font-hand);
+  font-size: 1.1rem;
+  color: var(--pen);
+}
+
+.diagram-canvas__stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md) 0;
+}
+
+.diagram-canvas__short {
+  font-family: var(--font-hand);
+  font-size: 1.2rem;
+  text-align: center;
+  color: var(--pen);
+  margin: 0;
+}
+
+.diagram-topology {
+  width: 100%;
+  max-width: 400px;
+}
+
+.diagram-topology__line {
+  stroke: var(--pen);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.diagram-topology__line--dashed {
+  stroke-dasharray: 6 5;
+}
+
+.diagram-topology__line--wavy {
+  stroke: var(--highlight);
+  stroke-dasharray: 4 6;
+}
+
+.diagram-topology__vertex {
+  fill: var(--paper);
+  stroke: var(--pen);
+  stroke-width: 2;
+}
+
+.diagram-topology__label {
+  font-family: var(--font-hand);
+  font-size: 16px;
+  fill: var(--ink);
+}

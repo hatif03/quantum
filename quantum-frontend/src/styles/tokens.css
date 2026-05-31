@@ -1,0 +1,33 @@
+:root {
+  --paper: #f4f0e8;
+  --paper-deep: #ebe5d8;
+  --ink: #1a1a1a;
+  --ink-muted: #5c5c5c;
+  --pencil: #4a4a4a;
+  --pen: #2c3e7a;
+  --pen-light: rgba(44, 62, 122, 0.12);
+  --rule: rgba(44, 62, 122, 0.14);
+  --margin-line: rgba(200, 80, 80, 0.35);
+  --highlight: #c45c3e;
+  --success: #2d6a4f;
+  --error: #9b2226;
+
+  --font-serif: "Source Serif 4", Georgia, serif;
+  --font-hand: "Caveat", "Segoe Script", cursive;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --shadow-paper: 0 2px 12px rgba(26, 26, 26, 0.08);
+  --shadow-lift: 0 12px 40px rgba(26, 26, 26, 0.12);
+
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+
+  --header-h: 56px;
+  --max-width: 1200px;
+  --transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}

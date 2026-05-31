@@ -1,0 +1,64 @@
+.workflow-timeline {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.workflow-timeline__item {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  transition: background var(--transition), color var(--transition);
+}
+
+.workflow-timeline__item--active {
+  background: var(--pen-light);
+  color: var(--pen);
+  font-weight: 600;
+}
+
+.workflow-timeline__item--done {
+  color: var(--success);
+}
+
+.workflow-timeline__item--done .workflow-timeline__index::after {
+  content: " ✓";
+  font-size: 0.75rem;
+}
+
+.workflow-timeline__item--error {
+  color: var(--error);
+}
+
+.workflow-timeline__index {
+  font-family: var(--font-hand);
+  font-size: 1rem;
+}
+
+.workflow-timeline__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pen);
+  animation: pulse 1s ease infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+}

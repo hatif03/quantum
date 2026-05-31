@@ -1,0 +1,50 @@
+.feynman-sketch {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.feynman-sketch--compact {
+  max-width: 280px;
+}
+
+.feynman-sketch__line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.feynman-sketch__line--fermion {
+  stroke: var(--pen);
+  stroke-width: 2.5;
+}
+
+.feynman-sketch__line--fermion.feynman-sketch__line--anti {
+  stroke-dasharray: 6 5;
+}
+
+.feynman-sketch__line--photon {
+  stroke: var(--highlight);
+  stroke-width: 2;
+  stroke-dasharray: 4 6;
+}
+
+.feynman-sketch__vertex {
+  fill: var(--paper);
+  stroke: var(--pen);
+  stroke-width: 2;
+}
+
+.feynman-sketch__label {
+  font-family: var(--font-hand);
+  font-size: 18px;
+  fill: var(--ink);
+}
+
+.feynman-sketch__note {
+  font-family: var(--font-hand);
+  font-size: 16px;
+  fill: var(--pen);
+}
