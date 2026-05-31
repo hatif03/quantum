@@ -1,23 +1,45 @@
 import { motion } from "framer-motion";
+import { SketchDefs } from "../sketch/SketchDefs";
 import "./FeynmanSketch.css";
 
 interface FeynmanSketchProps {
   animate?: boolean;
   showLabels?: boolean;
   compact?: boolean;
+  showTicks?: boolean;
 }
 
 const PATHS = {
-  fermionTop: "M 40 48 C 100 72 140 95 180 120",
-  fermionBottom: "M 40 172 C 100 148 140 125 180 120",
-  photonTop: "M 180 120 C 230 78 280 52 320 36",
-  photonBottom: "M 180 120 C 228 158 278 182 320 196",
+  fermionTop: "M 38 46 C 98 70 138 96 178 118",
+  fermionBottom: "M 38 174 C 98 150 138 124 178 118",
+  photonTop: "M 178 118 C 228 74 278 48 322 32",
+  photonBottom: "M 178 118 C 226 156 276 180 322 194",
 };
+
+function WavyPhoton({ d, animate, delay }: { d: string; animate: boolean; delay: number }) {
+  const wavy =
+    "M 178 118 C 195 95 215 70 240 52 C 265 38 295 28 322 32";
+  const path = d.includes("322 32") ? wavy : "M 178 118 C 200 140 240 168 280 186 C 305 192 322 194 322 194";
+
+  if (!animate) {
+    return <path className="feynman-sketch__line feynman-sketch__line--photon" d={path} />;
+  }
+  return (
+    <motion.path
+      className="feynman-sketch__line feynman-sketch__line--photon"
+      d={path}
+      initial={{ pathLength: 0, opacity: 0.35 }}
+      animate={{ pathLength: 1, opacity: 1 }}
+      transition={{ delay, duration: 0.95, ease: "easeInOut" }}
+    />
+  );
+}
 
 export function FeynmanSketch({
   animate = true,
   showLabels = true,
   compact = false,
+  showTicks = false,
 }: FeynmanSketchProps) {
   return (
     <svg
@@ -26,89 +48,88 @@ export function FeynmanSketch({
       role="img"
       aria-label="Feynman diagram: electron and positron annihilate into two photons at a central vertex"
     >
-      {animate ? (
-        <>
-          <motion.path
-            className="feynman-sketch__line feynman-sketch__line--fermion"
-            d={PATHS.fermionTop}
-            initial={{ pathLength: 0, opacity: 0.4 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ delay: 0, duration: 0.9, ease: "easeInOut" }}
+      <SketchDefs />
+      <g filter="url(#sketch-pencil)">
+        {showTicks && (
+          <>
+            <path d="M 18 28 L 18 192" className="feynman-sketch__tick-line" />
+            <path d="M 10 110 L 26 110" className="feynman-sketch__tick-line" />
+            <path d="M 338 28 L 338 192" className="feynman-sketch__tick-line" />
+          </>
+        )}
+        {animate ? (
+          <>
+            <motion.path
+              className="feynman-sketch__line feynman-sketch__line--fermion"
+              d={PATHS.fermionTop}
+              initial={{ pathLength: 0, opacity: 0.35 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ delay: 0, duration: 0.95, ease: "easeInOut" }}
+            />
+            <motion.path
+              className="feynman-sketch__line feynman-sketch__line--fermion feynman-sketch__line--anti"
+              d={PATHS.fermionBottom}
+              initial={{ pathLength: 0, opacity: 0.35 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ delay: 0.15, duration: 0.95, ease: "easeInOut" }}
+            />
+            <WavyPhoton d={PATHS.photonTop} animate delay={0.3} />
+            <WavyPhoton d={PATHS.photonBottom} animate delay={0.45} />
+          </>
+        ) : (
+          <>
+            <path className="feynman-sketch__line feynman-sketch__line--fermion" d={PATHS.fermionTop} />
+            <path
+              className="feynman-sketch__line feynman-sketch__line--fermion feynman-sketch__line--anti"
+              d={PATHS.fermionBottom}
+            />
+            <WavyPhoton d={PATHS.photonTop} animate={false} delay={0} />
+            <WavyPhoton d={PATHS.photonBottom} animate={false} delay={0} />
+          </>
+        )}
+        {animate ? (
+          <motion.circle
+            className="feynman-sketch__vertex"
+            cx={178}
+            cy={118}
+            r={8}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.75, type: "spring", stiffness: 260 }}
           />
-          <motion.path
-            className="feynman-sketch__line feynman-sketch__line--fermion feynman-sketch__line--anti"
-            d={PATHS.fermionBottom}
-            initial={{ pathLength: 0, opacity: 0.4 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ delay: 0.15, duration: 0.9, ease: "easeInOut" }}
-          />
-          <motion.path
-            className="feynman-sketch__line feynman-sketch__line--photon"
-            d={PATHS.photonTop}
-            initial={{ pathLength: 0, opacity: 0.4 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.9, ease: "easeInOut" }}
-          />
-          <motion.path
-            className="feynman-sketch__line feynman-sketch__line--photon"
-            d={PATHS.photonBottom}
-            initial={{ pathLength: 0, opacity: 0.4 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ delay: 0.45, duration: 0.9, ease: "easeInOut" }}
-          />
-        </>
-      ) : (
-        <>
-          <path className="feynman-sketch__line feynman-sketch__line--fermion" d={PATHS.fermionTop} />
-          <path
-            className="feynman-sketch__line feynman-sketch__line--fermion feynman-sketch__line--anti"
-            d={PATHS.fermionBottom}
-          />
-          <path className="feynman-sketch__line feynman-sketch__line--photon" d={PATHS.photonTop} />
-          <path className="feynman-sketch__line feynman-sketch__line--photon" d={PATHS.photonBottom} />
-        </>
-      )}
-      {animate ? (
-        <motion.circle
-          className="feynman-sketch__vertex"
-          cx={180}
-          cy={120}
-          r={7}
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.75, type: "spring", stiffness: 280 }}
-        />
-      ) : (
-        <circle className="feynman-sketch__vertex" cx={180} cy={120} r={7} />
-      )}
-      {showLabels && (
-        <>
-          <text className="feynman-sketch__label" x={28} y={40}>
-            e⁻
-          </text>
-          <text className="feynman-sketch__label" x={28} y={198}>
-            e⁺
-          </text>
-          <text className="feynman-sketch__label" x={308} y={28}>
-            γ
-          </text>
-          <text className="feynman-sketch__label" x={308} y={210}>
-            γ
-          </text>
-          {animate && (
-            <motion.text
-              className="feynman-sketch__note"
-              x={200}
-              y={200}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2 }}
-            >
-              interaction
-            </motion.text>
-          )}
-        </>
-      )}
+        ) : (
+          <circle className="feynman-sketch__vertex" cx={178} cy={118} r={8} />
+        )}
+        {showLabels && (
+          <>
+            <text className="feynman-sketch__label" x={24} y={38} filter="url(#sketch-chalk)">
+              e⁻
+            </text>
+            <text className="feynman-sketch__label" x={24} y={196} filter="url(#sketch-chalk)">
+              e⁺
+            </text>
+            <text className="feynman-sketch__label" x={306} y={26} filter="url(#sketch-chalk)">
+              γ
+            </text>
+            <text className="feynman-sketch__label" x={306} y={208} filter="url(#sketch-chalk)">
+              γ
+            </text>
+            {animate && (
+              <motion.text
+                className="feynman-sketch__note"
+                x={188}
+                y={198}
+                filter="url(#sketch-chalk)"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2 }}
+              >
+                vertex
+              </motion.text>
+            )}
+          </>
+        )}
+      </g>
     </svg>
   );
 }

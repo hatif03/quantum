@@ -1,0 +1,39 @@
+.equation-note {
+  font-family: var(--font-scribble);
+  color: var(--sketch-ink);
+  transform: rotate(-2deg);
+}
+
+.equation-note--right {
+  transform: rotate(1.5deg);
+}
+
+.equation-note__label {
+  display: block;
+  font-family: var(--font-hand);
+  font-size: 1.05rem;
+  color: var(--pen);
+  margin-bottom: 0.1rem;
+  transform: rotate(-1deg);
+}
+
+.equation-note__scribble {
+  display: block;
+  font-family: var(--font-scribble);
+  font-size: 1.35rem;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  color: var(--sketch-ink);
+  text-shadow: 0.4px 0.6px 0 rgba(42, 63, 92, 0.15);
+}
+
+.equation-note--faded .equation-note__scribble {
+  opacity: 0.5;
+}
+
+@media (max-width: 900px) {
+  .journey-chapter__margin-notes {
+    display: none;
+  }
+}

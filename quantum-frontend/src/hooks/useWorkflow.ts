@@ -3,15 +3,6 @@ import { generateDiagram } from "../api/client";
 import { pickExample } from "../api/mock";
 import type { FinalAnswer, WorkflowStepId } from "../api/types";
 
-const AGENT_STEPS: { id: WorkflowStepId; label: string }[] = [
-  { id: "planner", label: "Planner" },
-  { id: "kb_retriever", label: "KB Retriever" },
-  { id: "physics_validator", label: "Physics Validator" },
-  { id: "diagram_generator", label: "Diagram Generator" },
-  { id: "tikz_validator", label: "TikZ Validator" },
-  { id: "feedback", label: "Feedback" },
-];
-
 const STEP_MAP: Record<string, WorkflowStepId> = {
   planner: "planner",
   kb_retriever: "kb_retriever",
@@ -62,7 +53,6 @@ export function useWorkflow() {
     error,
     running,
     run,
-    agentSteps: AGENT_STEPS,
   };
 }
 

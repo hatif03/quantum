@@ -1,5 +1,7 @@
 import { FeynmanSketch } from "../story/FeynmanSketch";
+import { StoryFigure } from "../story/StoryFigure";
 import { STORY_CHAPTERS } from "../../journey/chapters";
+import { toHandwritten } from "../sketch/handwrittenMath";
 import { JourneyChapter } from "./JourneyChapter";
 
 interface StoryChaptersProps {
@@ -20,19 +22,29 @@ export function StoryChapters({ diagramInView }: StoryChaptersProps) {
             eyebrow={chapter.eyebrow}
             title={chapter.title}
             isFirst={index === 0}
-            showScrollHint={showHint && chapter.id !== "threshold"}
+            showScrollHint={showHint}
+            framed={false}
+            hasFigure
           >
             {body.map((paragraph, i) => (
               <p key={i}>{paragraph}</p>
             ))}
+            {chapter.inlineEquations && chapter.inlineEquations.length > 0 && (
+              <ul className="journey-chapter__equations" aria-label="Key relations">
+                {chapter.inlineEquations.map((eq) => (
+                  <li key={eq}>{toHandwritten(eq)}</li>
+                ))}
+              </ul>
+            )}
+            {chapter.id !== "diagram" && <StoryFigure chapter={chapter.id} />}
             {chapter.showSketch && (
-              <FeynmanSketch animate={diagramInView} showLabels />
+              <FeynmanSketch animate={diagramInView} showLabels showTicks />
             )}
             {chapter.showRules && (
               <ul className="journey-chapter__rules">
-                <li>Charge conservation</li>
-                <li>Allowed vertices and propagators</li>
-                <li>Matches known interaction topology</li>
+                <li>Electric charge conserved at every vertex</li>
+                <li>Lepton number matches the allowed couplings</li>
+                <li>Four-momentum conserved for external legs</li>
               </ul>
             )}
             {chapter.showContinue && (
@@ -46,7 +58,7 @@ export function StoryChapters({ diagramInView }: StoryChaptersProps) {
                     });
                   }}
                 >
-                  Continue to the workbench
+                  Try it below
                 </button>
               </div>
             )}

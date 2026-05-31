@@ -1,0 +1,42 @@
+.diagram-preview {
+  width: 100%;
+}
+
+.diagram-preview__svg,
+.diagram-preview .feynman-sketch {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.diagram-preview__caption {
+  margin: var(--space-sm) 0 0;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.diagram-preview__line {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.diagram-preview__line--dashed {
+  stroke-dasharray: 6 5;
+}
+
+.diagram-preview__line--wavy {
+  stroke-dasharray: none;
+}
+
+.diagram-preview__vertex {
+  fill: var(--ink);
+}
+
+.diagram-preview__label {
+  font-family: var(--font-scribble);
+  font-size: 15px;
+  fill: var(--ink);
+}

@@ -11,6 +11,10 @@
 
 .masthead__brand {
   pointer-events: auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   margin: 0;
   padding: 0;
   border: none;
@@ -24,6 +28,12 @@
   opacity: 0.88;
   cursor: pointer;
   transition: opacity var(--transition);
+}
+
+.masthead__scribble {
+  width: 4.5rem;
+  height: 0.5rem;
+  opacity: 0.65;
 }
 
 .masthead__brand:hover {

@@ -1,0 +1,25 @@
+.sketch-frame {
+  position: relative;
+  padding: var(--space-md) var(--space-lg);
+}
+
+.sketch-frame__border {
+  position: absolute;
+  inset: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.sketch-frame__content {
+  position: relative;
+  z-index: 1;
+}
+
+.panel.sketch-panel,
+.sketch-frame.panel {
+  border: none;
+  box-shadow: none;
+  background: rgba(244, 240, 232, 0.55);
+}

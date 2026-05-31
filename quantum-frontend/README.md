@@ -1,6 +1,6 @@
 # quantum
 
-Pen-and-paper frontend for the Particle Physics Agent. One scroll journey—from leaving the lecture hall to drawing Feynman diagrams in the workbench—with 3D atmosphere woven through the story ([Harmony](https://harmony.now/)-style flow).
+Pen-and-paper frontend for the Particle Physics Agent. One scroll journey—from lecture to Feynman diagrams—with inline sketches, margin equations, and a minimal chat workbench at the end.
 
 ## Quick start
 
@@ -10,7 +10,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). Scroll to move through the narrative; the lab is the final chapter.
+Open [http://localhost:5173](http://localhost:5173). Scroll through the story; the lab is the final chapter.
 
 ## Experience
 
@@ -21,19 +21,19 @@ Open [http://localhost:5173](http://localhost:5173). Scroll to move through the 
 | `/lab` | Redirects to `/#lab` |
 | `/story` | Redirects to `/` |
 
-**Chapters (scroll):** classroom → collisions (nebula) → maps (protostar) → Feynman diagram → rules → threshold → **lab**
+**Chapters (scroll):** classroom → collisions → maps → Feynman diagram → rules → threshold → **lab**
 
-A fixed **persistent 3D canvas** crossfades models as you scroll. The lab bundle loads when you near the final section.
+Each story chapter includes subject-specific copy, inline handwritten equations, and a small SVG figure. The lab is a single-column chat UI: describe a process, see the diagram, expand TikZ output.
 
-## 3D assets
+## Visual system
 
-Place GLB files in `public/models/`:
+- Ruled paper background with red margin line
+- `StoryFigure` — inline chapter diagrams in the content column
+- `FeynmanSketch` — interactive QED diagram in the diagram chapter
+- `EquationNote` — margin math in Patrick Hand (handwritten mapping)
+- `ChatWorkbench` — minimal composer + message thread for the lab
 
-| File | Used in chapters |
-|------|------------------|
-| `fluid.glb` | threshold, lab |
-| `stellar-nursery.glb` | collisions |
-| `dg-tauri.glb` | maps |
+No 3D/WebGL assets are required.
 
 ## Backend integration
 
@@ -41,20 +41,20 @@ Types in `src/api/types.ts` mirror `feynmancraft_adk/schemas.py`.
 
 | Variable | Behavior |
 |----------|----------|
-| *(unset)* | Mock six-agent pipeline in `src/api/mock.ts` |
+| *(unset)* | Mock pipeline in `src/api/mock.ts` |
 | `VITE_API_BASE_URL` | POST `{base}/api/diagram` |
 
 ## Project layout
 
 ```
 src/
-  journey/      chapter definitions
+  journey/      chapter definitions + margin notes
   hooks/        useActiveChapter, useWorkflow
   components/
-    journey/    Journey, JourneyChapter, LabChapter, ProgressRail
-    story/      FeynmanSketch
-    lab/        ProcessInput, DiagramCanvas, …
-    three/      PersistentStoryCanvas, PersistentScene
+    sketch/     EquationNote, ScribblePath, SketchDefs
+    journey/    Journey, JourneyChapter, LabChapter
+    story/      FeynmanSketch, StoryFigure
+    lab/          ChatWorkbench, DiagramPreview
     layout/     Masthead
   pages/        JourneyPage
 ```
@@ -69,4 +69,5 @@ src/
 
 - Native document scroll (keyboard, screen readers)
 - `aria-live` announces active chapter
-- `prefers-reduced-motion`: no scroll-snap, static 3D placeholders
+- Decorative sketches are `aria-hidden`
+- `prefers-reduced-motion`: no scroll-snap, static illustrations, no path animations

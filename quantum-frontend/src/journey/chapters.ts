@@ -1,5 +1,3 @@
-import type { ModelId } from "../components/three/ModelBackdrop";
-
 export type ChapterId =
   | "classroom"
   | "collisions"
@@ -9,14 +7,23 @@ export type ChapterId =
   | "threshold"
   | "lab";
 
+export type SketchTheme = ChapterId;
+
+export interface MarginNoteDef {
+  latex: string;
+  label?: string;
+  position: "left" | "right";
+  faded?: boolean;
+}
+
 export interface StoryChapterDef {
   id: ChapterId;
+  sketch: SketchTheme;
   eyebrow?: string;
   title: string;
   body: string | string[];
-  model: ModelId | null;
-  /** 0–1 multiplier for 3D layer visibility */
-  sceneOpacity: number;
+  inlineEquations?: string[];
+  marginNotes?: MarginNoteDef[];
   showSketch?: boolean;
   showRules?: boolean;
   showContinue?: boolean;
@@ -25,56 +32,92 @@ export interface StoryChapterDef {
 export const STORY_CHAPTERS: StoryChapterDef[] = [
   {
     id: "classroom",
+    sketch: "classroom",
     eyebrow: "After the lecture",
-    title: "You step out of the hall",
+    title: "What counts as an event",
     body: [
-      "The chalkboard is still in your head: particles, forces, conservation laws.",
-      "But the collision itself was never on the board—it is inferred. Physicists draw maps of events, not photographs.",
+      "At the LHC, protons cross billions of times per second. A useful event is not a photograph—it is a reconstructed snapshot: tracks, energy deposits, and momenta that survived triggers and filters.",
+      "The collision vertex never sat on the chalkboard. Physicists infer it from the debris, then draw a map of the process that could have produced what the detector saw.",
     ],
-    model: null,
-    sceneOpacity: 0,
+    inlineEquations: ["E^2 = p^2 c^2 + m^2 c^4", "\\sigma \\propto |\\mathcal{M}|^2"],
+    marginNotes: [
+      { latex: "E^2 = p^2 c^2 + m^2 c^4", position: "left", label: "on-shell" },
+      { latex: "\\sum Q = 0", position: "right" },
+    ],
   },
   {
     id: "collisions",
-    eyebrow: "Out there",
+    sketch: "collisions",
+    eyebrow: "Beams",
     title: "Collisions in the dark",
-    body: "Most particle events happen where we cannot point a camera. Nebulae and distant light are clues—not pictures of a single collision.",
-    model: "stellar-nursery",
-    sceneOpacity: 0.38,
+    body: [
+      "Two beam pipes carry protons at nearly the speed of light. Where they meet, partons can scatter or annihilate; the products spray into layers of silicon, gas, and calorimeters.",
+      "A nebula on a poster is beautiful astrophysics—not a single pp interaction. Distant light is a clue; the event map is built from measured four-momenta.",
+    ],
+    inlineEquations: ["p + p \\to X", "\\sqrt{s} \\approx 13.6\\,\\mathrm{TeV}"],
+    marginNotes: [
+      { latex: "p + p \\to X", position: "right", label: "hard scatter" },
+      { latex: "\\sqrt{s}", position: "left", faded: true },
+    ],
   },
   {
     id: "maps",
-    eyebrow: "Hidden structure",
+    sketch: "maps",
+    eyebrow: "Calculational graphs",
     title: "Maps, not pictures",
-    body: "Disks, jets, and hidden cores stand in for processes we model. The drawing is a compact blueprint for calculation, not a literal snapshot.",
-    model: "dg-tauri",
-    sceneOpacity: 0.36,
+    body: [
+      "A Feynman diagram is a recipe for an amplitude: which lines enter, which vertices fire, which propagators connect them. Time does not run left-to-right in the drawing—it is a bookkeeping graph.",
+      "Jets and missing energy in data are shorthand for parton showers, hadronization, and invisible carriers. The sketch compresses that story into lines you can sum over in perturbation theory.",
+    ],
+    inlineEquations: ["x \\in [0,1]", "p_T^{jet} \\gg \\Lambda_{QCD}"],
+    marginNotes: [
+      { latex: "x \\in [0,1]", position: "left", label: "parton" },
+      { latex: "p_T^{jet}", position: "right", faded: true },
+    ],
   },
   {
     id: "diagram",
+    sketch: "diagram",
     eyebrow: "On the page",
     title: "A Feynman diagram",
-    body: "Lines trace particles. A junction marks an interaction. Watch two carriers meet—and two photons leave.",
-    model: null,
-    sceneOpacity: 0.06,
+    body: [
+      "Solid lines are fermions; wiggly lines are photons. At the central vertex, an electron and positron annihilate; two photons leave with opposite helicities in the simplest tree-level picture.",
+      "Follow the arrows: charge flows in, photons carry the interaction, and the diagram tells you which Feynman rules to apply when you compute the rate.",
+    ],
+    inlineEquations: ["e^+ e^- \\to \\gamma \\gamma"],
+    marginNotes: [
+      {
+        latex: "e^+ e^- \\to \\gamma \\gamma",
+        position: "right",
+        label: "QED tree",
+      },
+    ],
     showSketch: true,
   },
   {
     id: "rules",
-    eyebrow: "Margin notes",
+    sketch: "rules",
+    eyebrow: "Constraints",
     title: "Rules on the page",
-    body: "Charge must balance. Only allowed forces appear. The map encodes those rules so predictions stay honest.",
-    model: null,
-    sceneOpacity: 0,
+    body: [
+      "Every allowed diagram respects symmetries: electric charge, lepton number, and four-momentum at each vertex. If a line cannot couple at that vertex, it does not belong in the map.",
+      "The amplitude must be gauge-invariant and match known low-energy limits. Those checks are what keep a scribble from becoming fiction.",
+    ],
+    inlineEquations: ["\\sum Q = 0", "\\sum L_e = 0"],
+    marginNotes: [
+      { latex: "\\sum Q = 0", position: "left" },
+      { latex: "\\sum L_e = 0", position: "right" },
+    ],
     showRules: true,
   },
   {
     id: "threshold",
-    eyebrow: "Threshold",
-    title: "You have the premise",
-    body: "Now sketch one process yourself. Quantum will read your words, check the physics, and return TikZ-Feynman code for your paper.",
-    model: "fluid",
-    sceneOpacity: 0.28,
+    sketch: "threshold",
+    eyebrow: "Your turn",
+    title: "Draw one process",
+    body: "Name a collision or decay in plain language. The workbench below will sketch the diagram and return TikZ-Feynman code you can paste into your paper.",
+    inlineEquations: ["\\mathcal{M}"],
+    marginNotes: [{ latex: "\\mathcal{M}", position: "left", label: "amplitude" }],
     showContinue: true,
   },
 ];
@@ -84,12 +127,7 @@ export const CHAPTER_ORDER: ChapterId[] = [
   "lab",
 ];
 
-export function chapterModelForId(id: ChapterId): ModelId | null {
-  if (id === "lab") return "fluid";
-  return STORY_CHAPTERS.find((c) => c.id === id)?.model ?? null;
-}
-
-export function sceneOpacityForId(id: ChapterId): number {
-  if (id === "lab") return 0.18;
-  return STORY_CHAPTERS.find((c) => c.id === id)?.sceneOpacity ?? 0;
+export function marginNotesForChapter(id: ChapterId): MarginNoteDef[] {
+  if (id === "lab") return [];
+  return STORY_CHAPTERS.find((c) => c.id === id)?.marginNotes ?? [];
 }

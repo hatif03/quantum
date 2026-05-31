@@ -8,6 +8,38 @@
   padding: calc(var(--header-h) + var(--space-2xl)) var(--space-xl) var(--space-2xl);
 }
 
+.journey-chapter__wrap {
+  width: 100%;
+}
+
+.journey-chapter__margin-notes {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: min(560px, calc(100% - 2rem));
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.journey-chapter__margin-notes .equation-note {
+  position: absolute;
+  top: 38%;
+  max-width: 150px;
+}
+
+.journey-chapter__margin-notes .equation-note--left {
+  left: -0.5rem;
+  transform: rotate(-4deg);
+}
+
+.journey-chapter__margin-notes .equation-note--right {
+  right: -0.5rem;
+  left: auto;
+  transform: rotate(3deg);
+}
+
 .journey-chapter--snap {
   scroll-snap-align: start;
 }
@@ -24,11 +56,33 @@
   margin: 0 auto;
 }
 
-.journey-chapter__eyebrow {
-  font-family: var(--font-hand);
+.journey-chapter--with-figure .journey-chapter__inner {
+  width: min(640px, 100%);
+}
+
+.journey-chapter__equations {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-md) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+}
+
+.journey-chapter__equations li {
+  font-family: var(--font-scribble);
   font-size: 1.35rem;
-  color: var(--pen);
+  color: var(--sketch-ink);
+  transform: rotate(-0.8deg);
+}
+
+.journey-chapter__eyebrow {
+  font-family: var(--font-scribble);
+  font-size: 1.5rem;
+  color: var(--sketch-ink);
   margin: 0 0 var(--space-sm);
+  transform: rotate(-1.5deg);
+  opacity: 0.9;
 }
 
 .journey-chapter__title {
@@ -53,11 +107,26 @@
 }
 
 .journey-chapter__rules li {
-  font-family: var(--font-hand);
-  font-size: 1.35rem;
-  color: var(--pen);
+  font-family: var(--font-scribble);
+  font-size: 1.4rem;
+  color: var(--sketch-ink);
   padding: var(--space-sm) 0;
-  border-bottom: 1px dashed var(--rule);
+  border-bottom: none;
+  background-image: linear-gradient(
+    to right,
+    transparent,
+    var(--sketch-blue) 20%,
+    var(--sketch-blue) 80%,
+    transparent
+  );
+  background-size: 100% 1px;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  transform: rotate(-0.5deg);
+}
+
+.journey-chapter__rules li:nth-child(2) {
+  transform: rotate(0.8deg);
 }
 
 .journey-chapter__continue {

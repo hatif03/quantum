@@ -4,7 +4,7 @@
   left: 50%;
   transform: translateX(-50%);
   margin: 0;
-  font-family: var(--font-hand);
+  font-family: var(--font-scribble);
   font-size: 1.25rem;
   color: var(--pen);
   opacity: 0.55;

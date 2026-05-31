@@ -7,9 +7,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes("node_modules/three") || id.includes("@react-three")) {
-            return "three";
-          }
           if (id.includes("framer-motion")) {
             return "motion";
           }

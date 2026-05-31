@@ -1,0 +1,14 @@
+.story-figure {
+  margin: var(--space-lg) 0 var(--space-md);
+}
+
+.story-figure__svg {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+}
+
+.story-figure__caption {
+  opacity: 0.75;
+}

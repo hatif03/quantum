@@ -12,8 +12,13 @@
   --success: #2d6a4f;
   --error: #9b2226;
 
+  --sketch-blue: #6fa8d8;
+  --sketch-wash: rgba(111, 168, 216, 0.14);
+  --sketch-ink: #2a3f5c;
+
   --font-serif: "Source Serif 4", Georgia, serif;
   --font-hand: "Caveat", "Segoe Script", cursive;
+  --font-scribble: "Patrick Hand", "Caveat", cursive;
 
   --radius-sm: 4px;
   --radius-md: 8px;

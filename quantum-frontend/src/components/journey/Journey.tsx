@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 import type { ChapterId } from "../../journey/chapters";
 import { useActiveChapter } from "../../hooks/useActiveChapter";
-import { PersistentStoryCanvas } from "../three/PersistentStoryCanvas";
+import { SketchDefsHost } from "../sketch/SketchDefsHost";
 import { ProgressRail } from "./ProgressRail";
 import { StoryChapters } from "./StoryChapters";
 import "./Journey.css";
@@ -47,21 +47,13 @@ export function Journey({ initialChapter }: JourneyProps) {
     }
   }, [initialChapter]);
 
-  const prefetchFluid =
-    activeChapter === "rules" ||
-    activeChapter === "threshold" ||
-    activeChapter === "lab";
-
   return (
     <>
+      <SketchDefsHost />
+
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {activeChapter.replace(/-/g, " ")} section
       </div>
-
-      <PersistentStoryCanvas
-        activeChapter={activeChapter}
-        prefetchFluid={prefetchFluid}
-      />
 
       <ProgressRail activeChapter={activeChapter} />
 
@@ -77,7 +69,7 @@ export function Journey({ initialChapter }: JourneyProps) {
           <Suspense
             fallback={
               <section className="journey__lab-loading panel">
-                Loading workbench…
+                Loading…
               </section>
             }
           >
