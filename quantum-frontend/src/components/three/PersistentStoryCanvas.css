@@ -1,0 +1,30 @@
+.persistent-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.persistent-canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.persistent-canvas--static,
+.persistent-canvas__static {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 40%, var(--pen-light), transparent 65%);
+}
+
+.persistent-canvas__static span {
+  font-family: var(--font-hand);
+  font-size: 4rem;
+  color: var(--pen);
+  opacity: 0.12;
+}

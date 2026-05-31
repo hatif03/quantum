@@ -1,0 +1,37 @@
+.masthead {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  margin: 0;
+  padding: var(--space-lg) var(--space-xl);
+  pointer-events: none;
+}
+
+.masthead__brand {
+  pointer-events: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-serif);
+  font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: var(--ink);
+  opacity: 0.88;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+
+.masthead__brand:hover {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .masthead {
+    padding: var(--space-md);
+  }
+}

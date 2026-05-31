@@ -1,0 +1,28 @@
+.journey {
+  position: relative;
+  z-index: 2;
+  scroll-snap-type: y proximity;
+}
+
+.journey--reduced {
+  scroll-snap-type: none;
+}
+
+.journey__sentinel {
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.journey__lab-stub {
+  min-height: 50vh;
+  scroll-snap-align: start;
+}
+
+.journey__lab-loading {
+  min-height: 40vh;
+  display: grid;
+  place-items: center;
+  margin: var(--space-xl);
+  color: var(--ink-muted);
+}

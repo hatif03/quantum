@@ -1,6 +1,6 @@
 # quantum
 
-Minimal pen-and-paper frontend for the Particle Physics Agent. Turns plain-language physics requests into validated Feynman diagrams (TikZ-Feynman), with a story-driven intro and a lab wired for future backend integration.
+Pen-and-paper frontend for the Particle Physics Agent. One scroll journey—from leaving the lecture hall to drawing Feynman diagrams in the workbench—with 3D atmosphere woven through the story ([Harmony](https://harmony.now/)-style flow).
 
 ## Quick start
 
@@ -10,63 +10,53 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Open [http://localhost:5173](http://localhost:5173). Scroll to move through the narrative; the lab is the final chapter.
 
-## Routes
+## Experience
 
-| Path | Purpose |
-|------|---------|
-| `/` | Minimal home — brand, CTA to story and lab |
-| `/story` | Five-page “book” explaining Feynman diagrams |
-| `/lab` | Process input, diagram preview, agent timeline, TikZ output |
+| Entry | Behavior |
+|-------|----------|
+| `/` | Full immersive journey (masthead only—no nav links) |
+| `/#lab` | Jump to the workbench chapter |
+| `/lab` | Redirects to `/#lab` |
+| `/story` | Redirects to `/` |
 
-## 3D assets (Sketchfab)
+**Chapters (scroll):** classroom → collisions (nebula) → maps (protostar) → Feynman diagram → rules → threshold → **lab**
 
-Download **GLB** exports and place them in `public/models/`:
+A fixed **persistent 3D canvas** crossfades models as you scroll. The lab bundle loads when you near the final section.
 
-| File | Sketchfab | License |
-|------|-----------|---------|
-| `fluid.glb` | [physics/1 fluid](https://skfb.ly/6sZQP) | Lab ambient + story page 5 |
-| `stellar-nursery.glb` | Stellar nursery (or free nebula substitute) | Story page 1 |
-| `dg-tauri.glb` | Young accreting star (or free protostar substitute) | Story page 2 |
+## 3D assets
 
-All three filenames match what the app loads. Models are preloaded and auto-centered on screen.
+Place GLB files in `public/models/`:
 
-If a model is missing, the UI shows a paper-style placeholder (no broken layout).
+| File | Used in chapters |
+|------|------------------|
+| `fluid.glb` | threshold, lab |
+| `stellar-nursery.glb` | collisions |
+| `dg-tauri.glb` | maps |
 
 ## Backend integration
 
-Types in `src/api/types.ts` mirror `feynmancraft_adk/schemas.py` (`DiagramRequest`, `WorkflowState`, `FinalAnswer`).
+Types in `src/api/types.ts` mirror `feynmancraft_adk/schemas.py`.
 
 | Variable | Behavior |
 |----------|----------|
-| *(unset)* | Uses `src/api/mock.ts` — simulates the six-agent pipeline with example TikZ |
-| `VITE_API_BASE_URL` | POST `{base}/api/diagram` with JSON body `{ user_prompt, style_hint? }` |
-
-Example `.env`:
-
-```env
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-Future options (not implemented in the frontend):
-
-- ADK dev UI / Cloud Run session API
-- FastAPI wrapper around `root_agent` returning `FinalAnswer`
-- SSE/WebSocket via `subscribeWorkflow()` stub in `src/api/client.ts`
+| *(unset)* | Mock six-agent pipeline in `src/api/mock.ts` |
+| `VITE_API_BASE_URL` | POST `{base}/api/diagram` |
 
 ## Project layout
 
 ```
 src/
-  api/          types, client, mock examples
-  hooks/        useWorkflow state machine
+  journey/      chapter definitions
+  hooks/        useActiveChapter, useWorkflow
   components/
-    story/      StoryBook, FeynmanSketch
-    lab/        ProcessInput, DiagramCanvas, WorkflowTimeline, ResultPanel
-    three/      PaperScene, ModelBackdrop (React Three Fiber)
-    layout/     Header, Footer
-  pages/        Home, Story, Lab
+    journey/    Journey, JourneyChapter, LabChapter, ProgressRail
+    story/      FeynmanSketch
+    lab/        ProcessInput, DiagramCanvas, …
+    three/      PersistentStoryCanvas, PersistentScene
+    layout/     Masthead
+  pages/        JourneyPage
 ```
 
 ## Scripts
@@ -75,13 +65,8 @@ src/
 - `npm run build` — production build
 - `npm run preview` — preview production build
 
-## Related repos
-
-- **Agent backend:** `../Particle-Physics-Agent-main/` (not modified by this frontend)
-- **Legacy mock UI:** `../feynmancraft-frontend/` (archived reference)
-
 ## Accessibility
 
-- `prefers-reduced-motion`: disables 3D and softens book page transitions
-- Story book: keyboard ←/→, `aria-live` on page changes
-- Diagram SVGs include descriptive `aria-label`s
+- Native document scroll (keyboard, screen readers)
+- `aria-live` announces active chapter
+- `prefers-reduced-motion`: no scroll-snap, static 3D placeholders
