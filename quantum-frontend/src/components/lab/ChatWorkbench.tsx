@@ -3,10 +3,39 @@ import { pickExample, PROCESS_EXAMPLES } from "../../api/mock";
 import type { FinalAnswer } from "../../api/types";
 import { useWorkflow } from "../../hooks/useWorkflow";
 import { DiagramPreview } from "./DiagramPreview";
+import { ReasoningPanel } from "./ReasoningPanel";
 import "./ChatWorkbench.css";
+import "./ReasoningPanel.css";
+
+const MODES = [
+  { id: "diagram" as const, label: "Diagram" },
+  { id: "explain" as const, label: "Explain" },
+  { id: "both" as const, label: "Both" },
+];
+
+const STEP_LABELS: Record<string, string> = {
+  planner: "Planning…",
+  kb_retriever: "Retrieving examples…",
+  physics_validator: "Validating physics…",
+  diagram_generator: "Generating TikZ…",
+  tikz_validator: "Validating TikZ…",
+  math_explainer: "Explaining math…",
+  feedback: "Synthesizing response…",
+};
 
 export function ChatWorkbench() {
-  const { prompt, setPrompt, example, result, error, running, run } = useWorkflow();
+  const {
+    prompt,
+    setPrompt,
+    mode,
+    setMode,
+    example,
+    activeStep,
+    result,
+    error,
+    running,
+    run,
+  } = useWorkflow();
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const [codeOpen, setCodeOpen] = useState(false);
 
@@ -33,7 +62,7 @@ export function ChatWorkbench() {
       <div className="chat-workbench__thread" role="log" aria-live="polite">
         {!hasThread && (
           <p className="chat-workbench__empty">
-            Describe a particle process—e.g. electron-positron annihilation to two photons.
+            Describe a particle process or ask for the math behind a quantum phenomenon.
           </p>
         )}
 
@@ -52,11 +81,18 @@ export function ChatWorkbench() {
             ) : (
               <>
                 {running && (
-                  <p className="chat-workbench__status" aria-busy="true">
-                    Generating…
-                  </p>
+                  <>
+                    <p className="chat-workbench__status" aria-busy="true">
+                      Working…
+                    </p>
+                    {activeStep !== "idle" && STEP_LABELS[activeStep] && (
+                      <p className="chat-workbench__step">{STEP_LABELS[activeStep]}</p>
+                    )}
+                  </>
                 )}
-                <DiagramPreview example={displayExample} animating={running} />
+                {(mode === "diagram" || mode === "both") && (
+                  <DiagramPreview example={displayExample} animating={running} />
+                )}
                 {result && (
                   <AssistantResult
                     result={result}
@@ -71,6 +107,19 @@ export function ChatWorkbench() {
       </div>
 
       <div className="chat-workbench__composer">
+        <div className="chat-workbench__mode" role="group" aria-label="Lab mode">
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              className={`chat-workbench__mode-btn${mode === m.id ? " chat-workbench__mode-btn--active" : ""}`}
+              onClick={() => setMode(m.id)}
+              disabled={running}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
         <textarea
           id="process-prompt"
           className="chat-workbench__input"
@@ -78,7 +127,7 @@ export function ChatWorkbench() {
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Describe a collision or decay…"
+          placeholder="Describe a collision, decay, or ask for the math…"
           aria-label="Process description"
         />
         <div className="chat-workbench__actions">
@@ -120,23 +169,37 @@ function AssistantResult({
   return (
     <div className="chat-workbench__result">
       {result.summary && <p className="chat-workbench__summary">{result.summary}</p>}
-      <p className="chat-workbench__meta">
-        Physics: {result.physics_report.overall_conclusion}
-        {" · "}
-        Compile: {result.compile_report.ok ? "OK" : "Failed"}
-      </p>
-      <button
-        type="button"
-        className="chat-workbench__code-toggle"
-        onClick={onToggleCode}
-        aria-expanded={codeOpen}
-      >
-        {codeOpen ? "Hide TikZ" : "Show TikZ-Feynman code"}
-      </button>
-      {codeOpen && (
-        <pre className="chat-workbench__code">
-          <code>{result.tikz.code}</code>
-        </pre>
+
+      {result.physics_report && (
+        <p className="chat-workbench__meta">
+          Physics: {result.physics_report.overall_conclusion}
+          {result.compile_report && (
+            <>
+              {" · "}
+              Compile: {result.compile_report.ok ? "OK" : "Failed"}
+            </>
+          )}
+        </p>
+      )}
+
+      {result.math_explanation && <ReasoningPanel explanation={result.math_explanation} />}
+
+      {result.tikz?.code && (
+        <>
+          <button
+            type="button"
+            className="chat-workbench__code-toggle"
+            onClick={onToggleCode}
+            aria-expanded={codeOpen}
+          >
+            {codeOpen ? "Hide TikZ" : "Show TikZ-Feynman code"}
+          </button>
+          {codeOpen && (
+            <pre className="chat-workbench__code">
+              <code>{result.tikz.code}</code>
+            </pre>
+          )}
+        </>
       )}
     </div>
   );

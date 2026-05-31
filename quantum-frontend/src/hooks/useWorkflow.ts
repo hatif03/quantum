@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { generateDiagram } from "../api/client";
 import { pickExample } from "../api/mock";
-import type { FinalAnswer, WorkflowStepId } from "../api/types";
+import type { FinalAnswer, WorkflowMode, WorkflowStepId } from "../api/types";
 
 const STEP_MAP: Record<string, WorkflowStepId> = {
   planner: "planner",
@@ -9,11 +9,13 @@ const STEP_MAP: Record<string, WorkflowStepId> = {
   physics_validator: "physics_validator",
   diagram_generator: "diagram_generator",
   tikz_validator: "tikz_validator",
+  math_explainer: "math_explainer",
   feedback: "feedback",
 };
 
 export function useWorkflow() {
   const [prompt, setPrompt] = useState(PROCESS_EXAMPLES_DEFAULT);
+  const [mode, setMode] = useState<WorkflowMode>("diagram");
   const [activeStep, setActiveStep] = useState<WorkflowStepId>("idle");
   const [result, setResult] = useState<FinalAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,11 +27,11 @@ export function useWorkflow() {
     setRunning(true);
     setError(null);
     setResult(null);
-    setActiveStep("planner");
+    setActiveStep(mode === "explain" ? "math_explainer" : "planner");
 
     try {
       const answer = await generateDiagram(
-        { user_prompt: prompt },
+        { user_prompt: prompt, mode },
         (step) => {
           setActiveStep(STEP_MAP[step] ?? "planner");
         },
@@ -42,11 +44,13 @@ export function useWorkflow() {
     } finally {
       setRunning(false);
     }
-  }, [prompt]);
+  }, [prompt, mode]);
 
   return {
     prompt,
     setPrompt,
+    mode,
+    setMode,
     example,
     activeStep,
     result,

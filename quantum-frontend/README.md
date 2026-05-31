@@ -1,6 +1,6 @@
 # quantum
 
-Pen-and-paper frontend for the Particle Physics Agent. One scroll journey—from lecture to Feynman diagrams—with inline sketches, margin equations, and a minimal chat workbench at the end.
+Pen-and-paper frontend for **Quantum Reason** — a reasoning-first physics tutor (K2 Think + ADK 2.x). Scroll journey with Feynman diagrams, margin equations, and a lab workbench with Diagram / Explain / Both modes.
 
 ## Quick start
 
@@ -37,7 +37,7 @@ No 3D/WebGL assets are required.
 
 ## Backend integration
 
-Types in `src/api/types.ts` mirror `feynmancraft_adk/schemas.py`.
+Types in `src/api/types.ts` mirror `quantum_reason_adk/schemas.py`.
 
 | Variable | Behavior |
 |----------|----------|
