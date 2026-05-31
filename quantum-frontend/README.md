@@ -1,6 +1,6 @@
 # quantum
 
-Pen-and-paper frontend for **Quantum Reason** — a reasoning-first physics tutor (K2 Think + ADK 2.x). Scroll journey with Feynman diagrams, margin equations, and a lab workbench with Diagram / Explain / Both modes.
+Pen-and-paper frontend for **Quantum Reason** — a reasoning-first physics tutor (K2 Think v2). Scroll journey with Feynman diagrams, margin equations, and a lab workbench with Diagram / Explain / Both modes.
 
 ## Quick start
 
