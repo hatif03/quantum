@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
-import type { ChapterId } from "../../journey/chapters";
 import { useActiveChapter } from "../../hooks/useActiveChapter";
 import { SketchDefsHost } from "../sketch/SketchDefsHost";
 import { ProgressRail } from "./ProgressRail";
@@ -11,11 +10,7 @@ const LabChapter = lazy(() =>
   import("./LabChapter").then((m) => ({ default: m.LabChapter })),
 );
 
-interface JourneyProps {
-  initialChapter?: ChapterId;
-}
-
-export function Journey({ initialChapter }: JourneyProps) {
+export function Journey() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeChapter = useActiveChapter(scrollRef);
   const reduced = useReducedMotion();
@@ -39,13 +34,13 @@ export function Journey({ initialChapter }: JourneyProps) {
   }, []);
 
   useEffect(() => {
-    if (initialChapter === "lab" || window.location.hash === "#lab") {
+    if (window.location.hash === "#lab") {
       setLabReady(true);
       requestAnimationFrame(() => {
         document.getElementById("lab")?.scrollIntoView();
       });
     }
-  }, [initialChapter]);
+  }, []);
 
   return (
     <>

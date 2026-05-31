@@ -1,4 +1,4 @@
-"""Parse ADK session state into API response schemas."""
+"""Parse workflow state into API response schemas."""
 
 import json
 import logging

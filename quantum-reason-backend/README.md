@@ -2,7 +2,7 @@
 
 Reasoning-first physics tutor for the [Build with K2 Think V2](https://build.k2think.ai/) hackathon.
 
-Pen-and-paper frontend + multi-agent backend: Feynman diagrams, physics validation, and step-by-step math explanations powered by **K2 Think v2** and **Google ADK 2.x**.
+Pen-and-paper frontend + backend: Feynman diagrams, physics validation, and step-by-step math explanations powered by **K2 Think v2** via the **OpenAI-compatible** API (`openai` Python SDK).
 
 ## Backend (`quantum-reason-backend`)
 
@@ -14,7 +14,7 @@ cp .env.example .env   # set K2_THINK_API_KEY
 uvicorn api.main:app --reload --port 8000
 ```
 
-ADK dev UI (optional): `adk web --port 8001 quantum_reason_adk`
+Test K2 connectivity: `python scripts/test_k2_client.py`
 
 ## Frontend (`quantum-frontend`)
 
@@ -33,11 +33,9 @@ Set `VITE_API_BASE_URL=http://localhost:8000` in `.env`.
 | GET | `/api/health` | Service status |
 | POST | `/api/diagram` | Diagram / explain / both (`mode` field) |
 | POST | `/api/explain` | Math explanation only |
-| GET | `/api/workflow/stream?session_id=` | SSE workflow steps |
 
 ## Architecture
 
-- **ADK 2.x** `SequentialAgent` + `LoopAgent` (deterministic pipeline)
-- **K2 Think v2** via LiteLLM for reasoning agents
-- **K2-V2-Instruct** for fast I/O agents
+- **OpenAI Python SDK** → `https://api.k2think.ai/v1` with `stream=True` (required by K2 IFM)
+- **Plain async pipelines** for diagram / explain / both modes
 - FastAPI bridge for React frontend

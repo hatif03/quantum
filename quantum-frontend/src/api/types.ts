@@ -1,4 +1,4 @@
-/** Mirrors quantum_reason_adk/schemas.py for backend integration */
+/** Types aligned with quantum_reason_adk/schemas.py */
 
 export type WorkflowMode = "diagram" | "explain" | "both";
 
@@ -6,26 +6,6 @@ export interface DiagramRequest {
   user_prompt: string;
   style_hint?: string | null;
   mode?: WorkflowMode;
-}
-
-export interface ExplainRequest {
-  user_prompt: string;
-  context?: string | null;
-}
-
-export type PlanStep =
-  | "retrieve_examples"
-  | "generate_tikz"
-  | "validate_tikz"
-  | "validate_physics"
-  | "feedback"
-  | "explain_math";
-
-export interface Plan {
-  steps: PlanStep[];
-  original_prompt: string;
-  physics_process?: string | null;
-  particles_involved: string[];
 }
 
 export interface TikzSnippet {
@@ -79,28 +59,6 @@ export interface FinalAnswer {
   summary?: string | null;
 }
 
-export interface ExplainResponse {
-  math_explanation: MathExplanation;
-  summary?: string | null;
-}
-
-export interface WorkflowState {
-  user_request?: string | null;
-  style_hint?: string | null;
-  plan?: Plan | null;
-  examples?: TikzSnippet[] | null;
-  search_metadata?: Record<string, unknown> | null;
-  tikz_code?: string | null;
-  generation_metadata?: Record<string, unknown> | null;
-  tikz_validation_report?: ValidationReport | null;
-  physics_validation_report?: PhysicsValidationReport | null;
-  math_explanation?: MathExplanation | null;
-  final_response?: string | null;
-  workflow_step?: string | null;
-  errors: string[];
-  warnings: string[];
-}
-
 export type WorkflowStepId =
   | "idle"
   | "planner"
@@ -112,13 +70,6 @@ export type WorkflowStepId =
   | "feedback"
   | "complete"
   | "error";
-
-export interface WorkflowEvent {
-  step: string;
-  author?: string;
-  partial?: boolean;
-  text?: string;
-}
 
 export interface ProcessExample {
   id: string;

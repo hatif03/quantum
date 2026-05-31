@@ -5,7 +5,6 @@ import { useWorkflow } from "../../hooks/useWorkflow";
 import { DiagramPreview } from "./DiagramPreview";
 import { ReasoningPanel } from "./ReasoningPanel";
 import "./ChatWorkbench.css";
-import "./ReasoningPanel.css";
 
 const MODES = [
   { id: "diagram" as const, label: "Diagram" },

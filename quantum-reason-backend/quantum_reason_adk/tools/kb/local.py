@@ -17,14 +17,16 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import logging
 
+from ...shared_libraries.config import config
+
+load_dotenv()
 logger = logging.getLogger(__name__)
 
-# Configuration
-EMB_DIM = 768  # Dimension for text-embedding-004
-DEFAULT_EMBEDDING_MODEL = "text-embedding-004"
-KB_JSON_PATH = Path(__file__).parent.parent / "data" / "feynman_kb.json"
-ANN_INDEX_PATH = Path(__file__).parent.parent / "data" / "feynman_kb.ann"
-ID_MAPPING_PATH = Path(__file__).parent.parent / "data" / "feynman_kb_id_map.json"
+EMB_DIM = 768
+DEFAULT_EMBEDDING_MODEL = config.models.embedding_model
+KB_JSON_PATH = config.knowledge_base.local_kb_path
+ANN_INDEX_PATH = config.knowledge_base.local_index_path
+ID_MAPPING_PATH = config.knowledge_base.local_id_map_path
 
 # Global cache
 _kb_data_cache: Optional[List[Dict[str, Any]]] = None
