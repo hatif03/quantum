@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import type { ChapterId } from "../../journey/chapters";
 import { marginNotesForChapter } from "../../journey/chapters";
+import { marginComicsForChapter, MarginComic } from "../story/MarginComic";
+import { marginSketchesForChapter, MarginSketch } from "../story/MarginSketch";
 import { EquationNote } from "../sketch/EquationNote";
 import { SketchFrame } from "../sketch/SketchFrame";
 import { ScrollHint } from "./ScrollHint";
@@ -20,6 +22,38 @@ interface JourneyChapterProps {
   hasFigure?: boolean;
 }
 
+function GutterContent({ id, side }: { id: ChapterId; side: "left" | "right" }) {
+  if (id === "lab") return null;
+
+  const comics = marginComicsForChapter(id).filter((c) => c.side === side);
+  const sketches = marginSketchesForChapter(id).filter((s) => s.side === side);
+  const notes = marginNotesForChapter(id).filter((n) => n.position === side);
+
+  if (comics.length === 0 && sketches.length === 0 && notes.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      {comics.map((comic) => (
+        <MarginComic key={comic.id} {...comic} />
+      ))}
+      {sketches.map((sketch) => (
+        <MarginSketch key={sketch.id} {...sketch} />
+      ))}
+      {notes.map((note, i) => (
+        <EquationNote
+          key={i}
+          latex={note.latex}
+          label={note.label}
+          position={note.position}
+          faded={note.faded}
+        />
+      ))}
+    </>
+  );
+}
+
 export function JourneyChapter({
   id,
   eyebrow,
@@ -33,7 +67,7 @@ export function JourneyChapter({
   hasFigure = false,
 }: JourneyChapterProps) {
   const TitleTag = isFirst ? "h1" : "h2";
-  const marginNotes = marginNotesForChapter(id);
+  const showGutters = id !== "lab";
 
   const inner = (
     <>
@@ -45,6 +79,14 @@ export function JourneyChapter({
     </>
   );
 
+  const centerContent = framed ? (
+    <SketchFrame>
+      <div className="journey-chapter__inner">{inner}</div>
+    </SketchFrame>
+  ) : (
+    <div className="journey-chapter__inner">{inner}</div>
+  );
+
   return (
     <section
       id={id}
@@ -52,35 +94,29 @@ export function JourneyChapter({
       className={`journey-chapter${snap ? " journey-chapter--snap" : ""}${hasFigure ? " journey-chapter--with-figure" : ""} ${className}`.trim()}
       aria-labelledby={`${id}-title`}
     >
-      {marginNotes.length > 0 && (
-        <div className="journey-chapter__margin-notes" aria-hidden="true">
-          {marginNotes.map((note, i) => (
-            <EquationNote
-              key={i}
-              latex={note.latex}
-              label={note.label}
-              position={note.position}
-              faded={note.faded}
-            />
-          ))}
-        </div>
-      )}
-
-      <motion.div
-        className="journey-chapter__wrap"
-        initial={{ opacity: 0, y: 28 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.35 }}
-        transition={{ duration: 0.65, ease: "easeOut" }}
-      >
-        {framed ? (
-          <SketchFrame>
-            <div className="journey-chapter__inner">{inner}</div>
-          </SketchFrame>
-        ) : (
-          <div className="journey-chapter__inner">{inner}</div>
+      <div className="journey-chapter__grid">
+        {showGutters && (
+          <aside className="journey-chapter__gutter journey-chapter__gutter--left" aria-hidden="true">
+            <GutterContent id={id} side="left" />
+          </aside>
         )}
-      </motion.div>
+
+        <motion.div
+          className="journey-chapter__wrap"
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{ duration: 0.65, ease: "easeOut" }}
+        >
+          {centerContent}
+        </motion.div>
+
+        {showGutters && (
+          <aside className="journey-chapter__gutter journey-chapter__gutter--right" aria-hidden="true">
+            <GutterContent id={id} side="right" />
+          </aside>
+        )}
+      </div>
       {showScrollHint && <ScrollHint />}
     </section>
   );

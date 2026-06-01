@@ -1,4 +1,4 @@
-import { toHandwritten } from "./handwrittenMath";
+import { MathBlock } from "./MathBlock";
 import "./EquationNote.css";
 
 interface EquationNoteProps {
@@ -16,15 +16,15 @@ export function EquationNote({
   faded = false,
   ariaLabel,
 }: EquationNoteProps) {
-  const text = toHandwritten(latex);
-
   return (
     <aside
-      className={`equation-note equation-note--${position}${faded ? " equation-note--faded" : ""}`}
-      aria-label={ariaLabel ?? text}
+      className={`equation-note equation-note--margin equation-note--${position}${faded ? " equation-note--faded" : ""}`}
+      aria-label={ariaLabel ?? latex}
     >
       {label && <span className="equation-note__label">{label}</span>}
-      <span className="equation-note__scribble">{text}</span>
+      <span className="equation-note__scribble">
+        <MathBlock latex={latex} />
+      </span>
     </aside>
   );
 }

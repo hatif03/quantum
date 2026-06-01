@@ -34,5 +34,6 @@
 
   --header-h: 56px;
   --max-width: 1200px;
+  --content-width: min(640px, 100%);
   --transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }

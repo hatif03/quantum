@@ -1,10 +1,11 @@
 .reasoning-panel {
   margin-top: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--ink-faint, #ccc);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.6);
-  font-family: var(--font-serif, "Source Serif 4", serif);
+  padding: 1rem 0 0;
+  border: none;
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-serif);
   font-size: 0.95rem;
 }
 
@@ -17,7 +18,7 @@
   margin: 0 0 0.75rem;
   font-size: 0.75rem;
   letter-spacing: 0.08em;
-  color: var(--ink-muted, #666);
+  color: var(--ink-muted);
 }
 
 .reasoning-panel__section {
@@ -48,35 +49,7 @@
 .reasoning-panel__trace {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px dashed var(--ink-faint, #ccc);
+  border-top: 1px dashed var(--rule);
   font-size: 0.9rem;
-  color: var(--ink-muted, #555);
-}
-
-.chat-workbench__mode {
-  display: flex;
-  gap: 0.35rem;
-  margin-bottom: 0.5rem;
-}
-
-.chat-workbench__mode-btn {
-  font: inherit;
-  font-size: 0.8rem;
-  padding: 0.25rem 0.6rem;
-  border: 1px solid var(--ink-faint, #ccc);
-  background: transparent;
-  cursor: pointer;
-  border-radius: 3px;
-}
-
-.chat-workbench__mode-btn--active {
-  background: var(--sketch-blue, #2a5a8a);
-  color: #fff;
-  border-color: var(--sketch-blue, #2a5a8a);
-}
-
-.chat-workbench__step {
-  font-size: 0.8rem;
-  color: var(--ink-muted, #666);
-  margin: 0.25rem 0;
+  color: var(--ink-muted);
 }

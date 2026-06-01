@@ -57,6 +57,7 @@ export interface FinalAnswer {
   compile_report?: ValidationReport | null;
   math_explanation?: MathExplanation | null;
   summary?: string | null;
+  tikz_image?: string | null;
 }
 
 export type WorkflowStepId =
@@ -76,6 +77,7 @@ export interface ProcessExample {
   match: string[];
   title: string;
   short: string;
+  shortLatex: string;
   confidence: string;
   particles: string[];
   diagramType: "annihilation" | "z_decay" | "compton" | "muon_decay";

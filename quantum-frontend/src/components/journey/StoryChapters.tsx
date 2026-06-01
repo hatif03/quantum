@@ -1,7 +1,7 @@
 import { FeynmanSketch } from "../story/FeynmanSketch";
 import { StoryFigure } from "../story/StoryFigure";
 import { STORY_CHAPTERS } from "../../journey/chapters";
-import { toHandwritten } from "../sketch/handwrittenMath";
+import { MathBlock } from "../sketch/MathBlock";
 import { JourneyChapter } from "./JourneyChapter";
 
 interface StoryChaptersProps {
@@ -32,7 +32,9 @@ export function StoryChapters({ diagramInView }: StoryChaptersProps) {
             {chapter.inlineEquations && chapter.inlineEquations.length > 0 && (
               <ul className="journey-chapter__equations" aria-label="Key relations">
                 {chapter.inlineEquations.map((eq) => (
-                  <li key={eq}>{toHandwritten(eq)}</li>
+                  <li key={eq}>
+                    <MathBlock latex={eq} />
+                  </li>
                 ))}
               </ul>
             )}

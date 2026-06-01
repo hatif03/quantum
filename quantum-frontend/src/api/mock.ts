@@ -6,6 +6,7 @@ export const PROCESS_EXAMPLES: ProcessExample[] = [
     match: ["electron", "positron", "annihilation", "photon"],
     title: "Electron-positron annihilation",
     short: "e+ e- -> gamma gamma",
+    shortLatex: "e^+ e^- \\to \\gamma \\gamma",
     confidence: "95% compile success pattern",
     particles: ["e-", "e+", "gamma", "gamma"],
     diagramType: "annihilation",
@@ -23,6 +24,7 @@ export const PROCESS_EXAMPLES: ProcessExample[] = [
     match: ["z", "boson", "lepton", "pair"],
     title: "Z boson decay",
     short: "Z -> l+ l-",
+    shortLatex: "Z \\to \\ell^+ \\ell^-",
     confidence: "PDG-backed validation path",
     particles: ["Z", "l-", "l+"],
     diagramType: "z_decay",
@@ -38,6 +40,7 @@ export const PROCESS_EXAMPLES: ProcessExample[] = [
     match: ["compton", "scattering"],
     title: "Compton scattering",
     short: "e- gamma -> e- gamma",
+    shortLatex: "e^- \\gamma \\to e^- \\gamma",
     confidence: "retrieves scattering examples",
     particles: ["e-", "gamma", "e-", "gamma"],
     diagramType: "compton",
@@ -53,6 +56,7 @@ export const PROCESS_EXAMPLES: ProcessExample[] = [
     match: ["muon", "decay"],
     title: "Muon decay",
     short: "mu- -> e- nu_mu anti-nu_e",
+    shortLatex: "\\mu^- \\to e^- \\nu_\\mu \\bar{\\nu}_e",
     confidence: "weak-interaction topology",
     particles: ["mu-", "W-", "e-", "nu_mu", "anti-nu_e"],
     diagramType: "muon_decay",
@@ -101,6 +105,16 @@ export async function mockGenerateDiagram(
     await delay(STEP_DELAY_MS);
   }
 
+  if (req.mode === "explain" || req.mode === "both") {
+    onStep?.("math_explainer");
+    await delay(STEP_DELAY_MS);
+  }
+
+  const mathExplanation =
+    req.mode === "explain" || req.mode === "both"
+      ? mockMathExplanation(example)
+      : undefined;
+
   return {
     tikz: {
       code: example.code,
@@ -133,5 +147,25 @@ export async function mockGenerateDiagram(
       details: "Mock compile: TikZ structure matches expected Feynman patterns.",
     },
     summary: `Generated a Feynman diagram for ${example.title}. The map shows which particles enter, interact, and exit—ready as TikZ-Feynman code for your paper.`,
+    math_explanation: mathExplanation,
+  };
+}
+
+function mockMathExplanation(example: ProcessExample) {
+  return {
+    topic: example.title,
+    domain: "particle" as const,
+    prerequisites: ["Four-momentum conservation", "Feynman rules"],
+    key_equations: [example.shortLatex, "\\sum Q = 0"],
+    derivation_steps: [
+      {
+        title: "Process topology",
+        latex: [example.shortLatex],
+        prose: `The diagram encodes the allowed external legs and vertices for ${example.title.toLowerCase()}.`,
+      },
+    ],
+    physical_interpretation:
+      "Each line represents a propagating particle; vertices encode couplings constrained by symmetries.",
+    diagram_connection: "The sketch matches the tree-level topology validated against PDG patterns.",
   };
 }

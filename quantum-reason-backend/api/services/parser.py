@@ -120,4 +120,5 @@ def state_to_final_answer(state: dict) -> FinalAnswer:
         compile_report=compile_report,
         math_explanation=math_explanation,
         summary=str(summary) if summary else None,
+        tikz_image=state.get("tikz_image") or state.get("tikzImage"),
     )

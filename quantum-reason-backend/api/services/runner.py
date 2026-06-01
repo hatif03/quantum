@@ -6,8 +6,8 @@ import uuid
 from typing import Optional
 
 from quantum_reason_adk.pipelines import run_pipeline
-from quantum_reason_adk.schemas import WorkflowMode
-from quantum_reason_adk.tools.tikz_validation import compile_tikz_tool
+from quantum_reason_adk.schemas import ValidationReport, WorkflowMode
+from quantum_reason_adk.tools.latex_compiler import validate_tikz_compilation
 from quantum_reason_adk.tools.kb.local import search_local_kb
 
 from .parser import state_to_final_answer
@@ -43,8 +43,26 @@ class WorkflowRunner:
         code = state.get("tikz_code")
         if code and isinstance(code, str):
             try:
-                report = json.loads(compile_tikz_tool(code))
-                state["tikz_validation_report"] = report
+                compile_result = validate_tikz_compilation(code)
+                png = compile_result.get("png_base64")
+                if png:
+                    state["tikz_image"] = png
+
+                analysis = compile_result.get("analysis") or {}
+                errors = list(analysis.get("errors") or [])
+                warnings = list(analysis.get("warnings") or [])
+                if compile_result.get("error"):
+                    errors.append(str(compile_result["error"]))
+
+                state["tikz_validation_report"] = ValidationReport(
+                    ok=bool(compile_result.get("success")) and not errors,
+                    errors=errors,
+                    warnings=warnings,
+                    details=json.dumps(
+                        {"compile": analysis.get("error_type") or "pdflatex"},
+                        default=str,
+                    ),
+                ).model_dump()
             except Exception as exc:
                 logger.warning("TikZ compile check failed: %s", exc)
 

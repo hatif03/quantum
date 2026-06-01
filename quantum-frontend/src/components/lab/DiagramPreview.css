@@ -37,6 +37,15 @@
 
 .diagram-preview__label {
   font-family: var(--font-scribble);
-  font-size: 15px;
-  fill: var(--ink);
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.diagram-preview__label-fo .katex {
+  font-size: 0.85em;
+}
+
+.diagram-preview__caption .katex {
+  font-size: 0.95em;
 }

@@ -1,39 +1,44 @@
-.equation-note {
-  font-family: var(--font-scribble);
-  color: var(--sketch-ink);
-  transform: rotate(-2deg);
+.equation-note--margin {
+  overflow: visible;
+  max-width: 100%;
+  width: 100%;
 }
 
-.equation-note--right {
-  transform: rotate(1.5deg);
-}
-
-.equation-note__label {
+.equation-note--margin .equation-note__label {
   display: block;
   font-family: var(--font-hand);
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   color: var(--pen);
-  margin-bottom: 0.1rem;
+  margin-bottom: 0.25rem;
   transform: rotate(-1deg);
 }
 
-.equation-note__scribble {
+.equation-note--margin .equation-note__scribble {
   display: block;
   font-family: var(--font-scribble);
-  font-size: 1.35rem;
-  font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: 0.02em;
   color: var(--sketch-ink);
   text-shadow: 0.4px 0.6px 0 rgba(42, 63, 92, 0.15);
+  overflow: visible;
+}
+
+.equation-note--margin .katex {
+  font-size: 0.88em;
+}
+
+.equation-note--margin.equation-note--left {
+  transform: rotate(-2deg);
+}
+
+.equation-note--margin.equation-note--right {
+  transform: rotate(1.5deg);
 }
 
 .equation-note--faded .equation-note__scribble {
   opacity: 0.5;
 }
 
-@media (max-width: 900px) {
-  .journey-chapter__margin-notes {
+@media (max-width: 1100px) {
+  .equation-note--margin {
     display: none;
   }
 }

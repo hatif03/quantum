@@ -10,7 +10,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). Scroll through the story; the lab is the final chapter.
+Open [http://localhost:5173](http://localhost:5173) (Vite may use **5174+** if 5173 is busy — the backend allows all localhost ports in dev). Scroll through the story; the lab is the final chapter.
 
 ## Experience
 
@@ -43,6 +43,12 @@ Types in `src/api/types.ts` mirror `quantum_reason_adk/schemas.py`.
 |----------|----------|
 | *(unset)* | Mock pipeline in `src/api/mock.ts` |
 | `VITE_API_BASE_URL` | POST `{base}/api/diagram` |
+
+If `VITE_API_BASE_URL` is set (e.g. `http://localhost:8000`) but the API is not running, the lab shows a friendly error with a **Try offline demo** button that falls back to the mock pipeline.
+
+**Mock-only:** omit `VITE_API_BASE_URL` or leave `.env` unset.
+
+**Live API:** copy `.env.example` to `.env`, start the backend (`uvicorn api.main:app --host 127.0.0.1 --port 8000` from `quantum-reason-backend`), then run the frontend. CORS accepts any `localhost` / `127.0.0.1` port during development.
 
 ## Project layout
 

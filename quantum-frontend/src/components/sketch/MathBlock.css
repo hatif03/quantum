@@ -1,0 +1,29 @@
+.math-block--display {
+  display: block;
+  margin: 0.5rem 0;
+}
+
+.reasoning-panel .math-block--display,
+.chat-workbench__code .math-block--display {
+  overflow-x: auto;
+}
+
+.math-block--inline {
+  display: inline;
+}
+
+.math-block .katex {
+  font-size: 1em;
+}
+
+.math-block--display .katex {
+  font-size: 1.05em;
+}
+
+.journey-chapter__equations .math-block .katex {
+  font-size: 1.05em;
+}
+
+.equation-note--margin .math-block {
+  overflow: visible;
+}

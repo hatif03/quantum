@@ -8,36 +8,38 @@
   padding: calc(var(--header-h) + var(--space-2xl)) var(--space-xl) var(--space-2xl);
 }
 
+.journey-chapter__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(var(--content-width), 100%) minmax(0, 1fr);
+  gap: var(--space-xl);
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  align-items: start;
+}
+
+.journey-chapter__gutter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding-top: var(--space-2xl);
+  align-items: center;
+}
+
+.journey-chapter__gutter--left {
+  align-items: flex-end;
+  padding-right: var(--space-sm);
+}
+
+.journey-chapter__gutter--right {
+  align-items: flex-start;
+  padding-left: var(--space-sm);
+}
+
 .journey-chapter__wrap {
   width: 100%;
-}
-
-.journey-chapter__margin-notes {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: min(560px, calc(100% - 2rem));
-  transform: translateX(-50%);
-  pointer-events: none;
-  z-index: 3;
-}
-
-.journey-chapter__margin-notes .equation-note {
-  position: absolute;
-  top: 38%;
-  max-width: 150px;
-}
-
-.journey-chapter__margin-notes .equation-note--left {
-  left: -0.5rem;
-  transform: rotate(-4deg);
-}
-
-.journey-chapter__margin-notes .equation-note--right {
-  right: -0.5rem;
-  left: auto;
-  transform: rotate(3deg);
+  position: relative;
+  z-index: 2;
 }
 
 .journey-chapter--snap {
@@ -46,18 +48,19 @@
 
 .journey-chapter--lab {
   scroll-snap-align: none;
-  min-height: auto;
-  justify-content: flex-start;
+  min-height: 100vh;
+  justify-content: center;
   padding-top: calc(var(--header-h) + var(--space-xl));
 }
 
-.journey-chapter__inner {
-  width: min(520px, 100%);
-  margin: 0 auto;
+.journey-chapter--lab .journey-chapter__grid {
+  grid-template-columns: min(var(--content-width), 100%);
+  justify-content: center;
 }
 
-.journey-chapter--with-figure .journey-chapter__inner {
-  width: min(640px, 100%);
+.journey-chapter__inner {
+  width: 100%;
+  margin: 0 auto;
 }
 
 .journey-chapter__equations {
@@ -65,15 +68,20 @@
   padding: 0;
   margin: var(--space-md) 0 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm) var(--space-lg);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
 }
 
 .journey-chapter__equations li {
   font-family: var(--font-scribble);
-  font-size: 1.35rem;
   color: var(--sketch-ink);
-  transform: rotate(-0.8deg);
+  transform: rotate(-0.4deg);
+  overflow: visible;
+}
+
+.journey-chapter__equations li:nth-child(2) {
+  transform: rotate(0.5deg);
 }
 
 .journey-chapter__eyebrow {
@@ -131,6 +139,17 @@
 
 .journey-chapter__continue {
   margin-top: var(--space-xl);
+}
+
+@media (max-width: 1100px) {
+  .journey-chapter__grid {
+    grid-template-columns: min(var(--content-width), 100%);
+    justify-content: center;
+  }
+
+  .journey-chapter__gutter {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {

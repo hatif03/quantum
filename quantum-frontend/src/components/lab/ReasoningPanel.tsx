@@ -1,15 +1,6 @@
-import katex from "katex";
 import type { MathExplanation } from "../../api/types";
-import "katex/dist/katex.min.css";
+import { MathBlock } from "../sketch/MathBlock";
 import "./ReasoningPanel.css";
-
-function renderLatex(latex: string): string {
-  try {
-    return katex.renderToString(latex, { throwOnError: false, displayMode: true });
-  } catch {
-    return latex;
-  }
-}
 
 export function ReasoningPanel({ explanation }: { explanation: MathExplanation }) {
   return (
@@ -32,11 +23,9 @@ export function ReasoningPanel({ explanation }: { explanation: MathExplanation }
         <section className="reasoning-panel__section">
           <h4>Key equations</h4>
           {explanation.key_equations.map((eq) => (
-            <div
-              key={eq}
-              className="reasoning-panel__eq"
-              dangerouslySetInnerHTML={{ __html: renderLatex(eq) }}
-            />
+            <div key={eq} className="reasoning-panel__eq">
+              <MathBlock latex={eq} displayMode />
+            </div>
           ))}
         </section>
       )}
@@ -46,11 +35,9 @@ export function ReasoningPanel({ explanation }: { explanation: MathExplanation }
           <summary>{step.title}</summary>
           <p>{step.prose}</p>
           {step.latex.map((eq) => (
-            <div
-              key={eq}
-              className="reasoning-panel__eq"
-              dangerouslySetInnerHTML={{ __html: renderLatex(eq) }}
-            />
+            <div key={eq} className="reasoning-panel__eq">
+              <MathBlock latex={eq} displayMode={eq.length > 40} />
+            </div>
           ))}
         </details>
       ))}

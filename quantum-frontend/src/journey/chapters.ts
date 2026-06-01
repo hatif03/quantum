@@ -39,7 +39,7 @@ export const STORY_CHAPTERS: StoryChapterDef[] = [
       "At the LHC, protons cross billions of times per second. A useful event is not a photograph—it is a reconstructed snapshot: tracks, energy deposits, and momenta that survived triggers and filters.",
       "The collision vertex never sat on the chalkboard. Physicists infer it from the debris, then draw a map of the process that could have produced what the detector saw.",
     ],
-    inlineEquations: ["E^2 = p^2 c^2 + m^2 c^4", "\\sigma \\propto |\\mathcal{M}|^2"],
+    inlineEquations: ["\\sigma \\propto |\\mathcal{M}|^2"],
     marginNotes: [
       { latex: "E^2 = p^2 c^2 + m^2 c^4", position: "left", label: "on-shell" },
       { latex: "\\sum Q = 0", position: "right" },
@@ -72,7 +72,7 @@ export const STORY_CHAPTERS: StoryChapterDef[] = [
     inlineEquations: ["x \\in [0,1]", "p_T^{jet} \\gg \\Lambda_{QCD}"],
     marginNotes: [
       { latex: "x \\in [0,1]", position: "left", label: "parton" },
-      { latex: "p_T^{jet}", position: "right", faded: true },
+      { latex: "p_T^{jet} \\gg \\Lambda", position: "right", faded: true },
     ],
   },
   {

@@ -93,6 +93,7 @@ class FinalAnswer(BaseModel):
     compile_report: Optional[ValidationReport] = None
     math_explanation: Optional[MathExplanation] = None
     summary: Optional[str] = None
+    tikz_image: Optional[str] = None
 
 
 class ExplainResponse(BaseModel):

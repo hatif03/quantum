@@ -1,0 +1,31 @@
+.margin-sketch {
+  width: 100%;
+  max-width: 160px;
+  margin: 0 auto;
+}
+
+.margin-sketch--left {
+  transform: rotate(-1.5deg);
+}
+
+.margin-sketch--right {
+  transform: rotate(1.5deg);
+}
+
+.margin-sketch__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.margin-sketch__label {
+  font-family: var(--font-scribble);
+  font-size: 11px;
+  fill: var(--sketch-ink);
+}
+
+@media (max-width: 1100px) {
+  .margin-sketch {
+    display: none;
+  }
+}

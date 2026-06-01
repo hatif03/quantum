@@ -16,6 +16,24 @@ uvicorn api.main:app --reload --port 8000
 
 Test K2 connectivity: `python scripts/test_k2_client.py`
 
+## Docker (production API + headless TikZ)
+
+The image includes **TeX Live** (`pdflatex`) and **Poppler** (`pdftoppm`) so diagram requests return compiled PNGs without interactive MiKTeX package prompts.
+
+```bash
+cd quantum-reason-backend
+docker build -t quantum-reason-api .
+docker run --rm -p 8000:8000 \
+  -e K2_THINK_API_KEY=your-key \
+  -e CORS_ORIGINS=https://your-frontend.example \
+  quantum-reason-api
+```
+
+- Set `CORS_ORIGINS` to your hosted frontend URL(s), comma-separated.
+- Local dev CORS still allows any `localhost` / `127.0.0.1` port via regex.
+- Image build runs a smoke test that compiles a minimal `tikz-feynman` diagram.
+- `tikz-feynman` is vendored under `docker/tex/` (LPPL) so builds do not depend on CTAN mirrors.
+
 ## Frontend (`quantum-frontend`)
 
 ```bash

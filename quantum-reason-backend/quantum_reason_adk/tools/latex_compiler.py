@@ -14,13 +14,13 @@
 
 """LaTeX compilation tools for TikZ validation."""
 
-import os
+import base64
+import logging
+import shutil
 import subprocess
 import tempfile
-import shutil
-import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -163,6 +163,10 @@ class LaTeXCompiler:
             # Check if PDF was generated
             pdf_file = work_dir / (tex_file.stem + ".pdf")
             pdf_generated = pdf_file.exists()
+
+            png_base64 = None
+            if pdf_generated:
+                png_base64 = self._pdf_to_png_base64(pdf_file)
             
             # Parse log file for detailed error analysis
             log_file = work_dir / (tex_file.stem + ".log")
@@ -181,6 +185,7 @@ class LaTeXCompiler:
             return {
                 "success": pdf_generated and final_result.returncode == 0,
                 "pdf_generated": pdf_generated,
+                "png_base64": png_base64,
                 "return_code": final_result.returncode,
                 "stdout": final_result.stdout,
                 "stderr": final_result.stderr,
@@ -308,6 +313,30 @@ class LaTeXCompiler:
         }
         
         return suggestions.get(error_type, ["Review LaTeX compilation log for details"])
+
+    def _pdf_to_png_base64(self, pdf_file: Path) -> Optional[str]:
+        """Convert compiled PDF to a PNG data URL when pdftoppm is available."""
+        pdftoppm = shutil.which("pdftoppm")
+        if not pdftoppm:
+            return None
+
+        out_prefix = pdf_file.parent / pdf_file.stem
+        try:
+            subprocess.run(
+                [pdftoppm, "-png", "-singlefile", "-r", "150", str(pdf_file), str(out_prefix)],
+                capture_output=True,
+                text=True,
+                timeout=20,
+                check=True,
+            )
+            png_file = pdf_file.parent / f"{pdf_file.stem}.png"
+            if not png_file.exists():
+                return None
+            encoded = base64.b64encode(png_file.read_bytes()).decode("ascii")
+            return f"data:image/png;base64,{encoded}"
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError) as exc:
+            logger.warning("PDF to PNG conversion failed: %s", exc)
+            return None
 
 
 def validate_tikz_compilation(tikz_code: str, packages: Optional[List[str]] = None) -> Dict:
