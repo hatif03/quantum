@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { FeynmanSketch } from "../story/FeynmanSketch";
 import { StoryFigure } from "../story/StoryFigure";
 import { STORY_CHAPTERS } from "../../journey/chapters";
@@ -51,17 +52,9 @@ export function StoryChapters({ diagramInView }: StoryChaptersProps) {
             )}
             {chapter.showContinue && (
               <div className="journey-chapter__continue">
-                <button
-                  type="button"
-                  className="btn btn--primary"
-                  onClick={() => {
-                    document.getElementById("lab")?.scrollIntoView({
-                      behavior: "smooth",
-                    });
-                  }}
-                >
-                  Try it below
-                </button>
+                <Link to="/app" className="btn btn--primary">
+                  Try our app
+                </Link>
               </div>
             )}
           </JourneyChapter>

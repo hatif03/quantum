@@ -73,6 +73,38 @@ export const PROCESS_EXAMPLES: ProcessExample[] = [
   b -- [anti fermion] n2 [particle=\(\bar{\nu}_{e}\)],
 };`,
   },
+  {
+    id: "w_decay",
+    match: ["w boson", "w decay", "w-", "weak"],
+    title: "W boson decay",
+    short: "W- -> e- anti-nu_e",
+    shortLatex: "W^- \\to e^- \\bar{\\nu}_e",
+    confidence: "electroweak tree topology",
+    particles: ["W-", "e-", "anti-nu_e"],
+    diagramType: "muon_decay",
+    prompt: "Draw a W boson decay to electron and antineutrino",
+    code: String.raw`\feynmandiagram [horizontal=w to v] {
+  w [particle=\(W^{-}\)] -- [boson] v,
+  v -- [fermion] e [particle=\(e^{-}\)],
+  v -- [anti fermion] n [particle=\(\bar{\nu}_{e}\)],
+};`,
+  },
+  {
+    id: "pair_production",
+    match: ["pair production", "photon", "gamma", "e+e-"],
+    title: "Pair production",
+    short: "gamma -> e+ e-",
+    shortLatex: "\\gamma \\to e^+ e^-",
+    confidence: "QED two-photon vertex pattern",
+    particles: ["gamma", "e-", "e+"],
+    diagramType: "annihilation",
+    prompt: "Show electron-positron pair production from a photon in a nuclear field",
+    code: String.raw`\feynmandiagram [horizontal=a to b] {
+  i1 [particle=\(\gamma\)] -- [photon] a,
+  a -- [fermion] f1 [particle=\(e^{-}\)],
+  a -- [anti fermion] f2 [particle=\(e^{+}\)],
+};`,
+  },
 ];
 
 export function pickExample(prompt: string): ProcessExample {

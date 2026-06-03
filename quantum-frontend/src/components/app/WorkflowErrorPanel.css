@@ -1,0 +1,30 @@
+.workflow-error {
+  padding: var(--space-sm) 0;
+}
+
+.workflow-error__title {
+  margin: 0 0 var(--space-xs);
+  font-family: var(--font-scribble);
+  font-size: 1.15rem;
+  color: var(--pen);
+}
+
+.workflow-error__message {
+  margin: 0 0 var(--space-sm);
+  color: var(--ink-muted);
+  font-size: 0.95rem;
+}
+
+.workflow-error__hint {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+.workflow-error__hint code {
+  font-size: 0.8rem;
+}
+
+.workflow-error__offline-btn {
+  margin-top: var(--space-xs);
+}

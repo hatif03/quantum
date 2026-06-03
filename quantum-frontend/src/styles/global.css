@@ -11,6 +11,17 @@ html {
   scroll-snap-type: y proximity;
 }
 
+html.app-route {
+  scroll-snap-type: none;
+  overflow: hidden;
+  height: 100%;
+}
+
+html.app-route body {
+  overflow: hidden;
+  height: 100%;
+}
+
 body {
   margin: 0;
   min-height: 100vh;

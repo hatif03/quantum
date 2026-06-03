@@ -106,7 +106,7 @@ const SKETCHES: Record<string, () => ReactNode> = {
   "threshold-lab": () => (
     <SketchPanel>
       <ScribblePath d="M 80 28 L 80 88 M 80 88 L 64 104 M 80 88 L 96 104" strokeWidth={2} />
-      <text className="margin-sketch__label" x={48} y={124}>lab below</text>
+      <text className="margin-sketch__label" x={48} y={124}>open app</text>
     </SketchPanel>
   ),
 };
@@ -153,6 +153,6 @@ export const MARGIN_SKETCHES: Partial<Record<ChapterId, MarginSketchDef[]>> = {
   ],
   threshold: [
     { id: "threshold-draw", side: "left", ariaLabel: "Blank diagram frame ready to be drawn" },
-    { id: "threshold-lab", side: "right", ariaLabel: "Arrow pointing to the lab workbench below" },
+    { id: "threshold-lab", side: "right", ariaLabel: "Arrow pointing to the quantum app" },
   ],
 };

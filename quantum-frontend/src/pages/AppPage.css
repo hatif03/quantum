@@ -1,0 +1,9 @@
+.app-page {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-page html,
+.app-page body {
+  overflow: hidden;
+}

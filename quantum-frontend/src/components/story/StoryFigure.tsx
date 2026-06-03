@@ -8,7 +8,7 @@ interface StoryFigureProps {
 }
 
 export function StoryFigure({ chapter }: StoryFigureProps) {
-  if (chapter === "diagram" || chapter === "lab") return null;
+  if (chapter === "diagram") return null;
 
   return (
     <figure className="story-figure" aria-hidden="true">

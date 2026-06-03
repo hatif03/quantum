@@ -1,0 +1,141 @@
+.app-shell {
+  display: grid;
+  grid-template-columns: 16rem 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "header header"
+    "sidebar main";
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  transition: grid-template-columns 0.2s ease;
+}
+
+.app-shell--history-closed {
+  grid-template-columns: 0 1fr;
+}
+
+.app-shell__header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-md);
+  border-bottom: 1px solid var(--rule);
+  background: rgba(244, 240, 232, 0.95);
+  flex-shrink: 0;
+  z-index: 50;
+}
+
+.app-shell__header-start {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.app-shell__history-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.app-shell__history-btn:hover {
+  border-color: var(--sketch-blue);
+  background: rgba(111, 168, 216, 0.1);
+}
+
+.app-shell__history-btn--open {
+  border-color: var(--sketch-blue);
+  background: rgba(111, 168, 216, 0.15);
+}
+
+.app-shell__history-icon {
+  display: block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-left: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  transform: rotate(45deg) translate(1px, -1px);
+  transition: transform 0.2s ease;
+}
+
+.app-shell__history-btn--open .app-shell__history-icon {
+  transform: rotate(-135deg) translate(1px, -1px);
+}
+
+.app-shell__brand {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-family: var(--font-scribble);
+  font-size: 1.35rem;
+  color: var(--ink);
+  text-decoration: none;
+  line-height: 1;
+}
+
+.app-shell__scribble {
+  width: 4rem;
+  height: 0.45rem;
+  margin-top: -0.1rem;
+}
+
+.app-shell__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.app-shell__story-link {
+  font-size: 0.85rem;
+  padding: 0.3rem 0.55rem;
+}
+
+.app-shell__new-chat {
+  white-space: nowrap;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.app-shell__main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-shell__composer-wrap {
+  flex-shrink: 0;
+  padding: 0 var(--space-sm) var(--space-sm);
+  max-width: 42rem;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .app-shell,
+  .app-shell--history-closed {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "main";
+  }
+
+  .app-shell__new-chat {
+    display: none;
+  }
+}

@@ -4,8 +4,7 @@ export type ChapterId =
   | "maps"
   | "diagram"
   | "rules"
-  | "threshold"
-  | "lab";
+  | "threshold";
 
 export type SketchTheme = ChapterId;
 
@@ -115,19 +114,15 @@ export const STORY_CHAPTERS: StoryChapterDef[] = [
     sketch: "threshold",
     eyebrow: "Your turn",
     title: "Draw one process",
-    body: "Name a collision or decay in plain language. The workbench below will sketch the diagram and return TikZ-Feynman code you can paste into your paper.",
+    body: "Name a collision or decay in plain language. Open the app to sketch the diagram, explain the math, or get TikZ-Feynman code for your paper.",
     inlineEquations: ["\\mathcal{M}"],
     marginNotes: [{ latex: "\\mathcal{M}", position: "left", label: "amplitude" }],
     showContinue: true,
   },
 ];
 
-export const CHAPTER_ORDER: ChapterId[] = [
-  ...STORY_CHAPTERS.map((c) => c.id),
-  "lab",
-];
+export const CHAPTER_ORDER: ChapterId[] = STORY_CHAPTERS.map((c) => c.id);
 
 export function marginNotesForChapter(id: ChapterId): MarginNoteDef[] {
-  if (id === "lab") return [];
   return STORY_CHAPTERS.find((c) => c.id === id)?.marginNotes ?? [];
 }

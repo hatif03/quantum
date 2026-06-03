@@ -23,8 +23,6 @@ interface JourneyChapterProps {
 }
 
 function GutterContent({ id, side }: { id: ChapterId; side: "left" | "right" }) {
-  if (id === "lab") return null;
-
   const comics = marginComicsForChapter(id).filter((c) => c.side === side);
   const sketches = marginSketchesForChapter(id).filter((s) => s.side === side);
   const notes = marginNotesForChapter(id).filter((n) => n.position === side);
@@ -67,7 +65,6 @@ export function JourneyChapter({
   hasFigure = false,
 }: JourneyChapterProps) {
   const TitleTag = isFirst ? "h1" : "h2";
-  const showGutters = id !== "lab";
 
   const inner = (
     <>
@@ -95,11 +92,9 @@ export function JourneyChapter({
       aria-labelledby={`${id}-title`}
     >
       <div className="journey-chapter__grid">
-        {showGutters && (
-          <aside className="journey-chapter__gutter journey-chapter__gutter--left" aria-hidden="true">
-            <GutterContent id={id} side="left" />
-          </aside>
-        )}
+        <aside className="journey-chapter__gutter journey-chapter__gutter--left" aria-hidden="true">
+          <GutterContent id={id} side="left" />
+        </aside>
 
         <motion.div
           className="journey-chapter__wrap"
@@ -111,11 +106,9 @@ export function JourneyChapter({
           {centerContent}
         </motion.div>
 
-        {showGutters && (
-          <aside className="journey-chapter__gutter journey-chapter__gutter--right" aria-hidden="true">
-            <GutterContent id={id} side="right" />
-          </aside>
-        )}
+        <aside className="journey-chapter__gutter journey-chapter__gutter--right" aria-hidden="true">
+          <GutterContent id={id} side="right" />
+        </aside>
       </div>
       {showScrollHint && <ScrollHint />}
     </section>

@@ -284,7 +284,7 @@ export const MARGIN_COMICS: Partial<Record<ChapterId, MarginComicDef[]>> = {
   threshold: [
     { id: "threshold-draw", side: "left", ariaLabel: "Time to draw your own process" },
     { id: "threshold-name", side: "left", ariaLabel: "Name a collision or decay in plain language" },
-    { id: "threshold-arrow", side: "right", ariaLabel: "Scroll down to the workbench below" },
+    { id: "threshold-arrow", side: "right", ariaLabel: "Open the quantum app to try a process" },
     { id: "threshold-tikz", side: "right", ariaLabel: "Receive TikZ-Feynman code for your paper" },
   ],
 };
