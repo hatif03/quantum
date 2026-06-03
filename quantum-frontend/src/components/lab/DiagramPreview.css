@@ -2,11 +2,15 @@
   width: 100%;
 }
 
+.diagram-preview--embedded {
+  width: 100%;
+}
+
 .diagram-preview__svg,
 .diagram-preview .feynman-sketch {
   display: block;
   width: 100%;
-  max-width: 320px;
+  max-width: min(100%, 520px);
   margin: 0 auto;
 }
 

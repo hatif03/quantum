@@ -1,4 +1,9 @@
-import type { DiagramRequest, FinalAnswer, ProcessExample } from "./types";
+import type {
+  DiagramLesson,
+  DiagramRequest,
+  FinalAnswer,
+  ProcessExample,
+} from "./types";
 
 export const PROCESS_EXAMPLES: ProcessExample[] = [
   {
@@ -91,29 +96,32 @@ export async function mockGenerateDiagram(
 ): Promise<FinalAnswer> {
   const example = pickExample(req.user_prompt);
 
-  const steps = [
-    "planner",
-    "kb_retriever",
-    "physics_validator",
-    "diagram_generator",
-    "tikz_validator",
-    "feedback",
+  const isTeach = req.mode === "both" || req.mode === "teach";
+  const teachSteps = [
+    "lesson_planner",
+    "diagram_lesson",
+    "compile_panels",
+    "math_explainer",
   ];
+  const diagramSteps = ["diagram_generator"];
+
+  const steps = isTeach
+    ? teachSteps
+    : req.mode === "explain"
+      ? ["math_explainer"]
+      : diagramSteps;
 
   for (const step of steps) {
     onStep?.(step);
     await delay(STEP_DELAY_MS);
   }
 
-  if (req.mode === "explain" || req.mode === "both") {
-    onStep?.("math_explainer");
-    await delay(STEP_DELAY_MS);
-  }
-
   const mathExplanation =
-    req.mode === "explain" || req.mode === "both"
-      ? mockMathExplanation(example)
+    req.mode === "explain" || isTeach
+      ? mockMathExplanation(example, isTeach)
       : undefined;
+
+  const diagramLesson = isTeach ? mockDiagramLesson(example) : undefined;
 
   return {
     tikz: {
@@ -146,12 +154,43 @@ export async function mockGenerateDiagram(
       warnings: [],
       details: "Mock compile: TikZ structure matches expected Feynman patterns.",
     },
-    summary: `Generated a Feynman diagram for ${example.title}. The map shows which particles enter, interact, and exit—ready as TikZ-Feynman code for your paper.`,
+    summary: isTeach
+      ? `Lesson for ${example.title}: follow the panels, then the derivation steps linked to each stage.`
+      : `Generated a Feynman diagram for ${example.title}. The map shows which particles enter, interact, and exit—ready as TikZ-Feynman code for your paper.`,
     math_explanation: mathExplanation,
+    diagram_lesson: diagramLesson,
+    workflow_step: "complete",
   };
 }
 
-function mockMathExplanation(example: ProcessExample) {
+function mockDiagramLesson(example: ProcessExample): DiagramLesson {
+  return {
+    summary: `How ${example.title} works, from kinematics to the full Feynman diagram.`,
+    panels: [
+      {
+        id: "panel_1",
+        title: "Process overview",
+        caption:
+          "Identify incoming and outgoing particles and what is exchanged at the vertex.",
+        tikz: example.code,
+        annotation_latex: [example.shortLatex],
+        linked_step_index: 0,
+        compile_ok: false,
+      },
+      {
+        id: "panel_2",
+        title: "Full diagram",
+        caption: "Tree-level Feynman diagram with standard tikz-feynman styling.",
+        tikz: example.code,
+        annotation_latex: ["\\sum Q = 0"],
+        linked_step_index: 1,
+        compile_ok: false,
+      },
+    ],
+  };
+}
+
+function mockMathExplanation(example: ProcessExample, isTeach: boolean) {
   return {
     topic: example.title,
     domain: "particle" as const,
@@ -162,10 +201,24 @@ function mockMathExplanation(example: ProcessExample) {
         title: "Process topology",
         latex: [example.shortLatex],
         prose: `The diagram encodes the allowed external legs and vertices for ${example.title.toLowerCase()}.`,
+        panel_id: isTeach ? "panel_1" : undefined,
+        intuition:
+          "External legs are on-shell particles; internal lines are propagators mediating the interaction.",
+      },
+      {
+        title: "Amplitude structure",
+        latex: ["\\mathcal{M} \\propto g^2", example.shortLatex],
+        prose: "Tree-level amplitudes follow from Feynman rules applied at each vertex.",
+        panel_id: isTeach ? "panel_2" : undefined,
+        intuition:
+          "Each vertex contributes a coupling; momentum conservation at vertices fixes kinematics.",
+        common_mistake: "Forgetting that photon lines use different Feynman rules than fermion lines.",
       },
     ],
     physical_interpretation:
       "Each line represents a propagating particle; vertices encode couplings constrained by symmetries.",
-    diagram_connection: "The sketch matches the tree-level topology validated against PDG patterns.",
+    diagram_connection: "Panel 1 sets up the process; panel 2 shows the full diagram used in the amplitude.",
+    reasoning_trace:
+      "Started from the user's process, matched KB topology, built a two-panel lesson, then derived the amplitude structure with explicit Feynman-rule intuition.",
   };
 }

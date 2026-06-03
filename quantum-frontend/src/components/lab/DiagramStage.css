@@ -1,0 +1,31 @@
+.diagram-stage {
+  width: 100%;
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.diagram-stage__inner {
+  width: 100%;
+  max-width: min(100%, 520px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diagram-stage__inner > svg,
+.diagram-stage__inner > img,
+.diagram-stage__inner .diagram-preview,
+.diagram-stage__inner .feynman-sketch {
+  width: 100%;
+  max-width: min(100%, 520px);
+  height: auto;
+}
+
+.diagram-stage__inner .diagram-preview__svg {
+  max-width: 100%;
+}

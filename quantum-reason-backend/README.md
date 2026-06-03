@@ -26,10 +26,15 @@ docker build -t quantum-reason-api .
 docker run --rm -p 8000:8000 \
   -e K2_THINK_API_KEY=your-key \
   -e CORS_ORIGINS=https://your-frontend.example \
+  -e QUANTUM_DEBUG=1 \
+  -v "$(pwd)/logs:/app/logs" \
   quantum-reason-api
 ```
 
 - Set `CORS_ORIGINS` to your hosted frontend URL(s), comma-separated.
+- Mount `logs` so Teach-mode session artifacts persist (`QUANTUM_LOG_DIR`, default `./logs/sessions`).
+- Inspect logs: `GET /api/debug/sessions` and `GET /api/debug/sessions/{id}` when `QUANTUM_DEBUG=1` or `QUANTUM_ENV=dev`.
+- The UI shows `debug_session_id` on each response when logging is enabled.
 - Local dev CORS still allows any `localhost` / `127.0.0.1` port via regex.
 - Image build runs a smoke test that compiles a minimal `tikz-feynman` diagram.
 - `tikz-feynman` is vendored under `docker/tex/` (LPPL) so builds do not depend on CTAN mirrors.
@@ -49,11 +54,12 @@ Set `VITE_API_BASE_URL=http://localhost:8000` in `.env`.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/health` | Service status |
-| POST | `/api/diagram` | Diagram / explain / both (`mode` field) |
+| POST | `/api/diagram` | Diagram / explain / teach (`mode`: `diagram`, `explain`, `both`, `teach`) |
 | POST | `/api/explain` | Math explanation only |
 
 ## Architecture
 
 - **OpenAI Python SDK** → `https://api.k2think.ai/v1` with `stream=True` (required by K2 IFM)
-- **Plain async pipelines** for diagram / explain / both modes
+- **Plain async pipelines**: `diagram` (single TikZ), `explain` (math JSON), `both`/`teach` (sequential plan → multi-panel diagrams → compile/retry → math; expect ~3–6 min)
+- **Standalone LaTeX** + paper-matched PNG (`#f4f0e8`), optional `pdfcrop`, 250 DPI
 - FastAPI bridge for React frontend

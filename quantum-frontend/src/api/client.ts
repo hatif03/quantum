@@ -38,19 +38,79 @@ export async function generateDiagramOffline(
   return mockGenerateDiagram(req, onStep);
 }
 
-export async function generateDiagram(
-  req: DiagramRequest,
-  onStep?: (step: string) => void,
-  options?: { forceMock?: boolean },
+export type DiagramStreamHandlers = {
+  onStep?: (step: string) => void;
+  onThinking?: (phase: string, delta: string) => void;
+};
+
+function isNetworkFailure(e: unknown): boolean {
+  return (
+    e instanceof TypeError ||
+    (e instanceof Error &&
+      (e.message.includes("Failed to fetch") || e.message.includes("NetworkError")))
+  );
+}
+
+async function parseSseStream(
+  res: Response,
+  handlers?: DiagramStreamHandlers,
 ): Promise<FinalAnswer> {
-  if (!hasBackend() || options?.forceMock) {
-    return mockGenerateDiagram(req, onStep);
+  if (!res.body) {
+    throw new Error("Stream response has no body");
   }
 
-  onStep?.(req.mode === "explain" ? "math_explainer" : "diagram_generator");
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let answer: FinalAnswer | null = null;
 
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+
+    for (const part of parts) {
+      for (const line of part.split("\n")) {
+        if (!line.startsWith("data: ")) continue;
+        const payload = JSON.parse(line.slice(6)) as {
+          type: string;
+          step?: string;
+          phase?: string;
+          delta?: string;
+          message?: string;
+          answer?: FinalAnswer;
+        };
+
+        if (payload.type === "step" && payload.step) {
+          handlers?.onStep?.(payload.step);
+        }
+        if (payload.type === "thinking" && payload.phase && payload.delta) {
+          handlers?.onThinking?.(payload.phase, payload.delta);
+        }
+        if (payload.type === "done" && payload.answer) {
+          answer = payload.answer;
+        }
+        if (payload.type === "error") {
+          throw new DiagramHttpError(payload.message ?? "Stream failed", 500);
+        }
+      }
+    }
+  }
+
+  if (!answer) {
+    throw new Error("Stream ended without a final answer");
+  }
+  return answer;
+}
+
+export async function generateDiagramStream(
+  req: DiagramRequest,
+  handlers?: DiagramStreamHandlers,
+): Promise<FinalAnswer> {
   try {
-    const res = await fetch(`${API_BASE}/api/diagram`, {
+    const res = await fetch(`${API_BASE}/api/diagram/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req),
@@ -64,16 +124,12 @@ export async function generateDiagram(
       );
     }
 
-    return res.json() as Promise<FinalAnswer>;
+    return parseSseStream(res, handlers);
   } catch (e) {
     if (e instanceof DiagramHttpError) {
       throw e;
     }
-    if (
-      e instanceof TypeError ||
-      (e instanceof Error &&
-        (e.message.includes("Failed to fetch") || e.message.includes("NetworkError")))
-    ) {
+    if (isNetworkFailure(e)) {
       throw new DiagramNetworkError(
         `Can't reach the physics backend at ${API_BASE}. Is it running? If uvicorn is up, your Vite port may not match CORS (e.g. 5174 vs 5173).`,
         API_BASE,
@@ -81,6 +137,23 @@ export async function generateDiagram(
     }
     throw e;
   }
+}
+
+export async function generateDiagram(
+  req: DiagramRequest,
+  onStep?: (step: string) => void,
+  options?: { forceMock?: boolean; onThinking?: (phase: string, delta: string) => void },
+): Promise<FinalAnswer> {
+  if (!hasBackend() || options?.forceMock) {
+    return mockGenerateDiagram(req, onStep);
+  }
+
+  const handlers: DiagramStreamHandlers = {
+    onStep,
+    onThinking: options?.onThinking,
+  };
+
+  return generateDiagramStream(req, handlers);
 }
 
 export type { WorkflowMode };

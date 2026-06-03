@@ -7,6 +7,8 @@ import "./DiagramPreview.css";
 interface DiagramPreviewProps {
   example: ProcessExample;
   animating?: boolean;
+  /** When true, omit outer wrapper caption (parent provides stage). */
+  embedded?: boolean;
 }
 
 const PARTICLE_LATEX: Record<string, string> = {
@@ -26,21 +28,31 @@ function particleLatex(label: string): string {
   return PARTICLE_LATEX[label] ?? label;
 }
 
-export function DiagramPreview({ example, animating = false }: DiagramPreviewProps) {
+export function DiagramPreview({
+  example,
+  animating = false,
+  embedded = false,
+}: DiagramPreviewProps) {
   return (
     <div
-      className="diagram-preview"
-      role="img"
-      aria-label={`Feynman diagram: ${example.title}`}
+      className={`diagram-preview${embedded ? " diagram-preview--embedded" : ""}`}
+      role={embedded ? undefined : "img"}
+      aria-label={embedded ? undefined : `Feynman diagram: ${example.title}`}
     >
       {example.diagramType === "annihilation" ? (
         <FeynmanSketch animate={animating} showLabels compact />
       ) : (
-        <DiagramTopology type={example.diagramType} labels={example.particles} animating={animating} />
+        <DiagramTopology
+          type={example.diagramType}
+          labels={example.particles}
+          animating={animating}
+        />
       )}
-      <p className="diagram-preview__caption">
-        <MathBlock latex={example.shortLatex} />
-      </p>
+      {!embedded && (
+        <p className="diagram-preview__caption">
+          <MathBlock latex={example.shortLatex} />
+        </p>
+      )}
     </div>
   );
 }

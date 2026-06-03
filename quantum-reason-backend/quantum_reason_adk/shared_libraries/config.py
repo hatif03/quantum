@@ -43,6 +43,12 @@ class SearchConfig:
 
 
 @dataclass
+class TeachPipelineConfig:
+    max_panels: int = field(default_factory=lambda: int(os.getenv("K2_MAX_PANELS", "4")))
+    compile_retries: int = field(default_factory=lambda: int(os.getenv("K2_COMPILE_RETRIES", "2")))
+
+
+@dataclass
 class APIConfig:
     google_api_key: Optional[str] = field(default_factory=lambda: os.getenv("GOOGLE_API_KEY"))
     k2_think_api_key: Optional[str] = field(default_factory=lambda: os.getenv("K2_THINK_API_KEY"))
@@ -53,6 +59,7 @@ class QuantumReasonConfig:
     models: ModelConfig = field(default_factory=ModelConfig)
     knowledge_base: KnowledgeBaseConfig = field(default_factory=KnowledgeBaseConfig)
     search: SearchConfig = field(default_factory=SearchConfig)
+    teach: TeachPipelineConfig = field(default_factory=TeachPipelineConfig)
     api: APIConfig = field(default_factory=APIConfig)
 
     def validate(self) -> List[str]:

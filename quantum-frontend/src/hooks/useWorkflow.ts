@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   DiagramHttpError,
   DiagramNetworkError,
@@ -8,13 +8,12 @@ import { pickExample } from "../api/mock";
 import type { FinalAnswer, WorkflowMode, WorkflowStepId } from "../api/types";
 
 const STEP_MAP: Record<string, WorkflowStepId> = {
-  planner: "planner",
-  kb_retriever: "kb_retriever",
-  physics_validator: "physics_validator",
+  lesson_planner: "lesson_planner",
+  diagram_lesson: "diagram_lesson",
+  compile_panels: "compile_panels",
   diagram_generator: "diagram_generator",
-  tikz_validator: "tikz_validator",
   math_explainer: "math_explainer",
-  feedback: "feedback",
+  complete: "complete",
 };
 
 export type WorkflowErrorKind = "network" | "http" | "unknown" | null;
@@ -28,6 +27,9 @@ export function useWorkflow() {
   const [errorKind, setErrorKind] = useState<WorkflowErrorKind>(null);
   const [offlineNotice, setOfflineNotice] = useState(false);
   const [running, setRunning] = useState(false);
+  const [thinkingText, setThinkingText] = useState("");
+  const [thinkingPhase, setThinkingPhase] = useState("");
+  const thinkingPhaseRef = useRef("");
 
   const example = pickExample(prompt);
 
@@ -37,18 +39,38 @@ export function useWorkflow() {
       setError(null);
       setErrorKind(null);
       setResult(null);
+      setThinkingText("");
+      setThinkingPhase("");
+      thinkingPhaseRef.current = "";
       if (!forceMock) {
         setOfflineNotice(false);
       }
-      setActiveStep(mode === "explain" ? "math_explainer" : "planner");
+      setActiveStep(
+        mode === "explain"
+          ? "math_explainer"
+          : mode === "diagram"
+            ? "diagram_generator"
+            : "lesson_planner",
+      );
 
       try {
         const answer = await generateDiagram(
           { user_prompt: prompt, mode },
           (step) => {
-            setActiveStep(STEP_MAP[step] ?? "planner");
+            setActiveStep(STEP_MAP[step] ?? "lesson_planner");
           },
-          { forceMock },
+          {
+            forceMock,
+            onThinking: (phase, delta) => {
+              if (thinkingPhaseRef.current !== phase) {
+                thinkingPhaseRef.current = phase;
+                setThinkingPhase(phase);
+                setThinkingText(delta);
+              } else {
+                setThinkingText((prev) => prev + delta);
+              }
+            },
+          },
         );
         setResult(answer);
         setActiveStep("complete");
@@ -90,6 +112,8 @@ export function useWorkflow() {
     errorKind,
     offlineNotice,
     running,
+    thinkingText,
+    thinkingPhase,
     run,
     retryOffline,
   };

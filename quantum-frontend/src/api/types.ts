@@ -1,6 +1,6 @@
 /** Types aligned with quantum_reason_adk/schemas.py */
 
-export type WorkflowMode = "diagram" | "explain" | "both";
+export type WorkflowMode = "diagram" | "explain" | "both" | "teach";
 
 export interface DiagramRequest {
   user_prompt: string;
@@ -34,10 +34,44 @@ export interface PhysicsValidationReport {
   overall_conclusion: string;
 }
 
+export interface PanelOutline {
+  id: string;
+  title: string;
+  purpose: string;
+}
+
+export interface LessonPlan {
+  process_name: string;
+  particles: string[];
+  teaching_goals: string[];
+  panel_outline: PanelOutline[];
+}
+
+export interface DiagramPanel {
+  id: string;
+  title: string;
+  caption: string;
+  tikz: string;
+  annotation_latex: string[];
+  linked_step_index?: number | null;
+  image_url?: string | null;
+  image_width?: number | null;
+  image_height?: number | null;
+  compile_ok?: boolean | null;
+}
+
+export interface DiagramLesson {
+  panels: DiagramPanel[];
+  summary: string;
+}
+
 export interface DerivationStep {
   title: string;
   latex: string[];
   prose: string;
+  panel_id?: string | null;
+  intuition?: string | null;
+  common_mistake?: string | null;
 }
 
 export interface MathExplanation {
@@ -58,17 +92,21 @@ export interface FinalAnswer {
   math_explanation?: MathExplanation | null;
   summary?: string | null;
   tikz_image?: string | null;
+  lesson_plan?: LessonPlan | null;
+  diagram_lesson?: DiagramLesson | null;
+  diagram_images?: Record<string, string>;
+  workflow_step?: string | null;
+  parse_warnings?: string[];
+  debug_session_id?: string | null;
 }
 
 export type WorkflowStepId =
   | "idle"
-  | "planner"
-  | "kb_retriever"
-  | "physics_validator"
+  | "lesson_planner"
+  | "diagram_lesson"
+  | "compile_panels"
   | "diagram_generator"
-  | "tikz_validator"
   | "math_explainer"
-  | "feedback"
   | "complete"
   | "error";
 

@@ -1,8 +1,31 @@
 # quantum_reason_adk/schemas.py
 from enum import Enum
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+_MATH_DOMAINS = frozenset({"qft", "qm", "stat_mech", "particle"})
+
+
+def normalize_math_domain(value: object) -> str:
+    """Coerce K2 output to a valid domain (handles schema echo like qft|qm|...)."""
+    if value is None:
+        return "particle"
+    s = str(value).strip().lower()
+    if s in _MATH_DOMAINS:
+        return s
+    if "|" in s:
+        for part in s.split("|"):
+            part = part.strip()
+            if part in _MATH_DOMAINS:
+                return part
+    if "qft" in s:
+        return "qft"
+    if "stat_mech" in s:
+        return "stat_mech"
+    if s == "qm":
+        return "qm"
+    return "particle"
 
 
 class Particle(BaseModel):
@@ -15,6 +38,7 @@ class WorkflowMode(str, Enum):
     DIAGRAM = "diagram"
     EXPLAIN = "explain"
     BOTH = "both"
+    TEACH = "teach"
 
 
 class DiagramRequest(BaseModel):
@@ -70,10 +94,44 @@ class PhysicsValidationReport(BaseModel):
     overall_conclusion: str
 
 
+class PanelOutline(BaseModel):
+    id: str
+    title: str
+    purpose: str = ""
+
+
+class LessonPlan(BaseModel):
+    process_name: str
+    particles: List[str] = Field(default_factory=list)
+    teaching_goals: List[str] = Field(default_factory=list)
+    panel_outline: List[PanelOutline] = Field(default_factory=list)
+
+
+class DiagramPanel(BaseModel):
+    id: str
+    title: str
+    caption: str = ""
+    tikz: str
+    annotation_latex: List[str] = Field(default_factory=list)
+    linked_step_index: Optional[int] = None
+    image_url: Optional[str] = None
+    image_width: Optional[int] = None
+    image_height: Optional[int] = None
+    compile_ok: Optional[bool] = None
+
+
+class DiagramLesson(BaseModel):
+    panels: List[DiagramPanel] = Field(default_factory=list)
+    summary: str = ""
+
+
 class DerivationStep(BaseModel):
     title: str
     latex: List[str] = Field(default_factory=list)
     prose: str
+    panel_id: Optional[str] = None
+    intuition: Optional[str] = None
+    common_mistake: Optional[str] = None
 
 
 class MathExplanation(BaseModel):
@@ -86,6 +144,11 @@ class MathExplanation(BaseModel):
     diagram_connection: Optional[str] = None
     reasoning_trace: Optional[str] = None
 
+    @field_validator("domain", mode="before")
+    @classmethod
+    def _coerce_domain(cls, value: object) -> str:
+        return normalize_math_domain(value)
+
 
 class FinalAnswer(BaseModel):
     tikz: Optional[TikzSnippet] = None
@@ -94,6 +157,12 @@ class FinalAnswer(BaseModel):
     math_explanation: Optional[MathExplanation] = None
     summary: Optional[str] = None
     tikz_image: Optional[str] = None
+    lesson_plan: Optional[LessonPlan] = None
+    diagram_lesson: Optional[DiagramLesson] = None
+    diagram_images: Dict[str, str] = Field(default_factory=dict)
+    workflow_step: Optional[str] = None
+    parse_warnings: List[str] = Field(default_factory=list)
+    debug_session_id: Optional[str] = None
 
 
 class ExplainResponse(BaseModel):

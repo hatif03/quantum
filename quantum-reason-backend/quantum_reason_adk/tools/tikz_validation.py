@@ -2,8 +2,19 @@
 
 import json
 
+from ..response_extractors import is_valid_tikz, normalize_tikz_string
 from ..schemas import ValidationReport
 from .latex_compiler import validate_tikz_compilation
+
+
+def tikz_passes_precheck(tikz_code: str) -> tuple[bool, str]:
+    """Return (ok, normalized_code). Reject corrupt JSON-escaped debris."""
+    normalized = normalize_tikz_string(tikz_code or "")
+    if not normalized:
+        return False, ""
+    if not is_valid_tikz(normalized):
+        return False, normalized
+    return True, normalized
 
 
 def _validate_tikz_syntax(tikz_code: str, packages: list) -> dict:
@@ -48,6 +59,17 @@ def _validate_tikz_syntax(tikz_code: str, packages: list) -> dict:
 
 def compile_tikz_tool(tikz_code: str, additional_packages: str = "") -> str:
     """Validate TikZ; return JSON ValidationReport string."""
+    ok_pre, normalized = tikz_passes_precheck(tikz_code)
+    if not ok_pre:
+        report = ValidationReport(
+            ok=False,
+            errors=["TikZ failed pre-check (corrupt or missing feynman/tikzpicture)"],
+            warnings=[],
+            details=json.dumps({"preview": (tikz_code or "")[:120]}),
+        )
+        return report.model_dump_json()
+    tikz_code = normalized
+
     packages = []
     if additional_packages.strip():
         packages = [p.strip() for p in additional_packages.split(",") if p.strip()]

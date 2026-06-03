@@ -39,6 +39,21 @@
 
 .reasoning-panel__step {
   margin-bottom: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.reasoning-panel__step--linked {
+  background: var(--sketch-wash);
+  border: 1px solid var(--sketch-blue);
+}
+
+.reasoning-panel__intuition,
+.reasoning-panel__mistake {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ink-muted);
 }
 
 .reasoning-panel__step summary {

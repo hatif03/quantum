@@ -16,14 +16,21 @@
 
 import base64
 import logging
+import re
 import shutil
+import struct
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 logger = logging.getLogger(__name__)
+
+# Matches frontend --paper in tokens.css
+PAPER_RGB = (244, 240, 232)
+PNG_DPI = 250
+STANDALONE_BORDER_PT = 2
 
 
 class LaTeXCompiler:
@@ -99,17 +106,17 @@ class LaTeXCompiler:
         
         all_packages = default_packages + [pkg for pkg in packages if pkg not in default_packages]
         
-        # Create document template
-        document = f"""\\documentclass{{article}}
-\\usepackage[margin=1cm]{{geometry}}
-\\usepackage{{xcolor}}
-"""
-        
-        # Add packages
+        r, g, b = PAPER_RGB
+        document = (
+            f"\\documentclass[border={STANDALONE_BORDER_PT}pt]{{standalone}}\n"
+            "\\usepackage{xcolor}\n"
+            f"\\definecolor{{paperbg}}{{RGB}}{{{r},{g},{b}}}\n"
+            "\\pagecolor{paperbg}\n"
+        )
+
         for package in all_packages:
             document += f"\\usepackage{{{package}}}\n"
-        
-        # TikZ libraries
+
         document += """
 \\usetikzlibrary{arrows.meta}
 \\usetikzlibrary{decorations.markings}
@@ -117,25 +124,22 @@ class LaTeXCompiler:
 \\usetikzlibrary{positioning}
 
 \\begin{document}
-\\thispagestyle{empty}
-
 """
-        
-        # Add TikZ code
-        if not tikz_code.strip().startswith("\\begin{tikzpicture}"):
-            # Wrap bare feynmandiagram in tikzpicture if needed
-            if "\\feynmandiagram" in tikz_code:
-                document += "\\begin{tikzpicture}\n"
-                document += tikz_code
-                document += "\n\\end{tikzpicture}\n"
-            else:
-                document += tikz_code
-        else:
-            document += tikz_code
-        
-        document += "\n\\end{document}"
-        
+
+        body = self._wrap_tikz_body(tikz_code)
+        document += body
+        document += "\n\\end{document}\n"
+
         return document
+
+    def _wrap_tikz_body(self, tikz_code: str) -> str:
+        """Wrap raw TikZ / feynmandiagram for standalone compilation."""
+        stripped = tikz_code.strip()
+        if stripped.startswith("\\begin{tikzpicture}"):
+            return stripped + "\n"
+        if "\\feynmandiagram" in stripped:
+            return "\\begin{tikzpicture}\n" + stripped + "\n\\end{tikzpicture}\n"
+        return stripped + "\n"
     
     def _run_compilation(self, tex_file: Path) -> Dict:
         """Run LaTeX compilation and analyze results."""
@@ -165,9 +169,12 @@ class LaTeXCompiler:
             pdf_generated = pdf_file.exists()
 
             png_base64 = None
+            png_width: Optional[int] = None
+            png_height: Optional[int] = None
             if pdf_generated:
-                png_base64 = self._pdf_to_png_base64(pdf_file)
-            
+                cropped = self._crop_pdf(pdf_file)
+                png_base64, png_width, png_height = self._pdf_to_png_base64(cropped)
+
             # Parse log file for detailed error analysis
             log_file = work_dir / (tex_file.stem + ".log")
             log_content = ""
@@ -186,12 +193,14 @@ class LaTeXCompiler:
                 "success": pdf_generated and final_result.returncode == 0,
                 "pdf_generated": pdf_generated,
                 "png_base64": png_base64,
+                "png_width": png_width,
+                "png_height": png_height,
                 "return_code": final_result.returncode,
                 "stdout": final_result.stdout,
                 "stderr": final_result.stderr,
                 "log_content": log_content,
                 "analysis": analysis,
-                "pdf_path": str(pdf_file) if pdf_generated else None
+                "pdf_path": str(pdf_file) if pdf_generated else None,
             }
             
         except subprocess.TimeoutExpired:
@@ -253,7 +262,6 @@ class LaTeXCompiler:
         # Search for errors in log content
         for error_type, patterns in error_patterns.items():
             for pattern in patterns:
-                import re
                 if re.search(pattern, log_content, re.IGNORECASE):
                     analysis["error_type"] = error_type
                     analysis["errors"].append(f"{error_type}: Pattern '{pattern}' found")
@@ -266,7 +274,6 @@ class LaTeXCompiler:
         ]
         
         for pattern in warning_patterns:
-            import re
             matches = re.findall(pattern + r".*", log_content, re.IGNORECASE)
             analysis["warnings"].extend(matches[:5])  # Limit to 5 warnings
         
@@ -314,16 +321,56 @@ class LaTeXCompiler:
         
         return suggestions.get(error_type, ["Review LaTeX compilation log for details"])
 
-    def _pdf_to_png_base64(self, pdf_file: Path) -> Optional[str]:
+    def _crop_pdf(self, pdf_file: Path) -> Path:
+        """Tighten PDF bounds with pdfcrop when available."""
+        pdfcrop = shutil.which("pdfcrop")
+        if not pdfcrop:
+            return pdf_file
+        cropped = pdf_file.parent / f"{pdf_file.stem}-crop.pdf"
+        try:
+            subprocess.run(
+                [pdfcrop, "--margins", "2", str(pdf_file), str(cropped)],
+                capture_output=True,
+                text=True,
+                timeout=20,
+                check=True,
+            )
+            if cropped.exists():
+                return cropped
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError) as exc:
+            logger.warning("pdfcrop failed, using uncropped PDF: %s", exc)
+        return pdf_file
+
+    @staticmethod
+    def _png_dimensions(png_file: Path) -> Tuple[Optional[int], Optional[int]]:
+        """Read width/height from PNG IHDR without external deps."""
+        try:
+            data = png_file.read_bytes()
+            if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n":
+                return None, None
+            width, height = struct.unpack(">II", data[16:24])
+            return int(width), int(height)
+        except (OSError, struct.error):
+            return None, None
+
+    def _pdf_to_png_base64(self, pdf_file: Path) -> Tuple[Optional[str], Optional[int], Optional[int]]:
         """Convert compiled PDF to a PNG data URL when pdftoppm is available."""
         pdftoppm = shutil.which("pdftoppm")
         if not pdftoppm:
-            return None
+            return None, None, None
 
         out_prefix = pdf_file.parent / pdf_file.stem
         try:
             subprocess.run(
-                [pdftoppm, "-png", "-singlefile", "-r", "150", str(pdf_file), str(out_prefix)],
+                [
+                    pdftoppm,
+                    "-png",
+                    "-singlefile",
+                    "-r",
+                    str(PNG_DPI),
+                    str(pdf_file),
+                    str(out_prefix),
+                ],
                 capture_output=True,
                 text=True,
                 timeout=20,
@@ -331,12 +378,13 @@ class LaTeXCompiler:
             )
             png_file = pdf_file.parent / f"{pdf_file.stem}.png"
             if not png_file.exists():
-                return None
+                return None, None, None
+            width, height = self._png_dimensions(png_file)
             encoded = base64.b64encode(png_file.read_bytes()).decode("ascii")
-            return f"data:image/png;base64,{encoded}"
+            return f"data:image/png;base64,{encoded}", width, height
         except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError) as exc:
             logger.warning("PDF to PNG conversion failed: %s", exc)
-            return None
+            return None, None, None
 
 
 def validate_tikz_compilation(tikz_code: str, packages: Optional[List[str]] = None) -> Dict:

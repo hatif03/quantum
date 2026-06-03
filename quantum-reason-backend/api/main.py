@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import diagram, explain
+from .routes import debug, diagram, explain
 
 load_dotenv()
 
@@ -33,6 +33,7 @@ app.add_middleware(
 
 app.include_router(diagram.router, prefix="/api", tags=["diagram"])
 app.include_router(explain.router, prefix="/api", tags=["explain"])
+app.include_router(debug.router, prefix="/api", tags=["debug"])
 
 
 @app.get("/api/health")

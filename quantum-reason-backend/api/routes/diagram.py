@@ -3,6 +3,7 @@
 import uuid
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 
 from quantum_reason_adk.schemas import DiagramRequest, FinalAnswer
 
@@ -24,3 +25,21 @@ async def generate_diagram(req: DiagramRequest):
         return FinalAnswer(**result)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/diagram/stream")
+async def generate_diagram_stream(req: DiagramRequest):
+    """Server-Sent Events: step, thinking, partial, done, error."""
+    return StreamingResponse(
+        workflow_runner.stream(
+            user_prompt=req.user_prompt,
+            mode=req.mode,
+            style_hint=req.style_hint,
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

@@ -1,13 +1,20 @@
 import { useState } from "react";
+import { displaySummary, isMathSchemaEcho } from "../../api/cotLeak";
 import { pickExample, PROCESS_EXAMPLES } from "../../api/mock";
 import { getApiBaseUrl } from "../../api/client";
 import type { FinalAnswer, WorkflowMode } from "../../api/types";
 import type { WorkflowErrorKind } from "../../hooks/useWorkflow";
 import { useWorkflow } from "../../hooks/useWorkflow";
 import { MathBlock, renderMixedLatex } from "../sketch/MathBlock";
+import { DiagramLessonView } from "./DiagramLessonView";
 import { ReasoningPanel } from "./ReasoningPanel";
+import { ThinkingTrace } from "./ThinkingTrace";
 import { TikzDiagram } from "./TikzDiagram";
 import "./ChatWorkbench.css";
+
+function isTeachMode(mode: WorkflowMode): boolean {
+  return mode === "both" || mode === "teach";
+}
 
 const MODES: {
   id: WorkflowMode;
@@ -26,19 +33,18 @@ const MODES: {
   },
   {
     id: "both",
-    label: "Both",
-    hint: "Full treatment: animated diagram plus mathematical explanation together.",
+    label: "Teach",
+    hint: "Multi-panel diagrams with step-by-step math (sequential K2 pipeline, ~3–6 min).",
   },
 ];
 
 const STEP_LABELS: Record<string, string> = {
-  planner: "Planning…",
-  kb_retriever: "Retrieving examples…",
-  physics_validator: "Validating physics…",
+  lesson_planner: "Planning lesson…",
+  diagram_lesson: "Building diagram panels…",
+  compile_panels: "Compiling TikZ panels…",
   diagram_generator: "Generating TikZ…",
-  tikz_validator: "Validating TikZ…",
   math_explainer: "Explaining math…",
-  feedback: "Synthesizing response…",
+  complete: "Done",
 };
 
 export function ChatWorkbench() {
@@ -54,11 +60,14 @@ export function ChatWorkbench() {
     errorKind,
     offlineNotice,
     running,
+    thinkingText,
+    thinkingPhase,
     run,
     retryOffline,
   } = useWorkflow();
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const [codeOpen, setCodeOpen] = useState(false);
+  const [activePanelIndex, setActivePanelIndex] = useState(0);
 
   const displayExample = result ? pickExample(prompt) : example;
   const hasThread = lastPrompt !== null;
@@ -69,6 +78,7 @@ export function ChatWorkbench() {
     if (!trimmed || running) return;
     setLastPrompt(trimmed);
     setCodeOpen(false);
+    setActivePanelIndex(0);
     void run();
   };
 
@@ -105,6 +115,13 @@ export function ChatWorkbench() {
               />
             ) : (
               <>
+                {(running || thinkingText) && (
+                  <ThinkingTrace
+                    phase={thinkingPhase || activeStep}
+                    text={thinkingText}
+                    running={running}
+                  />
+                )}
                 {running && (
                   <>
                     <p className="chat-workbench__status" aria-busy="true">
@@ -115,7 +132,23 @@ export function ChatWorkbench() {
                     )}
                   </>
                 )}
-                {(mode === "diagram" || mode === "both") && (
+                {isTeachMode(mode) &&
+                  (result?.diagram_lesson?.panels?.length ? (
+                    <DiagramLessonView
+                      lesson={result.diagram_lesson}
+                      diagramImages={result.diagram_images}
+                      fallbackExample={displayExample}
+                      activeIndex={activePanelIndex}
+                      onActiveIndexChange={setActivePanelIndex}
+                    />
+                  ) : (
+                    <TikzDiagram
+                      example={displayExample}
+                      tikzImage={result?.tikz_image}
+                      animating={running}
+                    />
+                  ))}
+                {mode === "diagram" && (
                   <TikzDiagram
                     example={displayExample}
                     tikzImage={result?.tikz_image}
@@ -128,6 +161,7 @@ export function ChatWorkbench() {
                     mode={mode}
                     codeOpen={codeOpen}
                     offlineNotice={offlineNotice}
+                    activePanelIndex={activePanelIndex}
                     onToggleCode={() => setCodeOpen((o) => !o)}
                   />
                 )}
@@ -248,15 +282,37 @@ function AssistantResult({
   mode,
   codeOpen,
   offlineNotice,
+  activePanelIndex,
   onToggleCode,
 }: {
   result: FinalAnswer;
   mode: WorkflowMode;
   codeOpen: boolean;
   offlineNotice: boolean;
+  activePanelIndex: number;
   onToggleCode: () => void;
 }) {
-  const showMath = mode === "explain" || mode === "both";
+  const showMath = mode === "explain" || isTeachMode(mode);
+  const activePanelId =
+    result.diagram_lesson?.panels[activePanelIndex]?.id ?? null;
+  const summaryText = displaySummary(result);
+  const warnings = result.parse_warnings ?? [];
+  const panelCount = result.diagram_lesson?.panels?.length ?? 0;
+  const anyCompileOk = result.diagram_lesson?.panels?.some((p) => p.compile_ok) ?? false;
+  const diagramWarning =
+    isTeachMode(mode) &&
+    (warnings.includes("diagram_lesson") ||
+      (panelCount > 0 && !anyCompileOk));
+  const mathIsPlaceholder =
+    result.math_explanation != null && isMathSchemaEcho(result.math_explanation);
+  const mathWarning =
+    isTeachMode(mode) &&
+    (warnings.includes("math_explanation") ||
+      mathIsPlaceholder ||
+      (!result.math_explanation && panelCount > 0 && !diagramWarning));
+  const showMathPanel =
+    showMath && result.math_explanation && !mathIsPlaceholder;
+  const planWarning = isTeachMode(mode) && warnings.includes("lesson_plan");
 
   return (
     <div className="chat-workbench__result">
@@ -265,8 +321,35 @@ function AssistantResult({
           Showing offline demo — start the backend for live K2 responses.
         </p>
       )}
-      {result.summary && (
-        <p className="chat-workbench__summary">{renderMixedLatex(result.summary)}</p>
+      {diagramWarning && (
+        <p className="chat-workbench__parse-warning" role="status">
+          {panelCount === 0
+            ? "Couldn't parse diagram lesson panels."
+            : "Some diagram panels failed to compile."}
+        </p>
+      )}
+      {mathWarning && !diagramWarning && (
+        <p className="chat-workbench__parse-warning" role="status">
+          {mathIsPlaceholder
+            ? "Math explanation could not be parsed (template echoed). Rebuild the API image and try again, or check logs/sessions."
+            : "Math explanation may be incomplete."}
+        </p>
+      )}
+      {planWarning && panelCount >= 2 && !diagramWarning && (
+        <p className="chat-workbench__parse-warning" role="status">
+          Lesson plan outline was not fully parsed; panels may not match the plan.
+        </p>
+      )}
+      {result.debug_session_id && (
+        <p className="chat-workbench__debug-session" role="note">
+          Debug session: <code>{result.debug_session_id}</code>
+          {" — "}
+          logs saved on server under{" "}
+          <code>logs/sessions/{result.debug_session_id}</code>
+        </p>
+      )}
+      {summaryText && (
+        <p className="chat-workbench__summary">{renderMixedLatex(summaryText)}</p>
       )}
 
       {result.physics_report && (
@@ -281,11 +364,14 @@ function AssistantResult({
         </p>
       )}
 
-      {showMath && result.math_explanation && (
-        <ReasoningPanel explanation={result.math_explanation} />
+      {showMathPanel && (
+        <ReasoningPanel
+          explanation={result.math_explanation!}
+          activePanelId={activePanelId}
+        />
       )}
 
-      {result.tikz?.code && (mode === "diagram" || mode === "both") && (
+      {result.tikz?.code && (mode === "diagram" || isTeachMode(mode)) && (
         <>
           <button
             type="button"

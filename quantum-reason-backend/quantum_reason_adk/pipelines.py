@@ -4,8 +4,10 @@ import json
 import logging
 from typing import Any, Optional
 
-from .k2_client import stream_chat
+from .k2_client import StreamEventCallback, stream_chat
 from .response_extractors import extract_json_object, extract_tikz
+from .logging.session_logger import SessionLogger
+from .teach_pipeline import run_teach_pipeline
 from .schemas import WorkflowMode
 from .prompts.diagram_generator import PROMPT as DIAGRAM_PROMPT
 from .prompts.math_explainer import PROMPT as MATH_EXPLAINER_PROMPT
@@ -44,10 +46,13 @@ async def run_diagram_pipeline(
     *,
     examples: Optional[list] = None,
     style_hint: Optional[str] = None,
+    on_event: Optional[StreamEventCallback] = None,
 ) -> dict[str, Any]:
     system = DIAGRAM_PROMPT + DIAGRAM_SYSTEM_SUFFIX
     user = _build_user_message(user_prompt, examples=examples, style_hint=style_hint)
-    text = await stream_chat(system=system, user=user)
+    text = await stream_chat(
+        system=system, user=user, phase="diagram_generator", on_event=on_event
+    )
     tikz = extract_tikz(text)
     state: dict[str, Any] = {"final_response": text, "user_request": user_prompt}
     if tikz:
@@ -55,8 +60,17 @@ async def run_diagram_pipeline(
     return state
 
 
-async def run_explain_pipeline(user_prompt: str) -> dict[str, Any]:
-    text = await stream_chat(system=MATH_EXPLAINER_PROMPT, user=user_prompt)
+async def run_explain_pipeline(
+    user_prompt: str,
+    *,
+    on_event: Optional[StreamEventCallback] = None,
+) -> dict[str, Any]:
+    text = await stream_chat(
+        system=MATH_EXPLAINER_PROMPT,
+        user=user_prompt,
+        phase="math_explainer",
+        on_event=on_event,
+    )
     math = extract_json_object(text)
     state: dict[str, Any] = {"final_response": text, "user_request": user_prompt}
     if math:
@@ -91,13 +105,22 @@ async def run_pipeline(
     *,
     examples: Optional[list] = None,
     style_hint: Optional[str] = None,
+    on_event: Optional[StreamEventCallback] = None,
+    session_log: Optional[SessionLogger] = None,
 ) -> dict[str, Any]:
     if mode == WorkflowMode.EXPLAIN:
-        return await run_explain_pipeline(user_prompt)
-    if mode == WorkflowMode.BOTH:
-        return await run_both_pipeline(
-            user_prompt, examples=examples, style_hint=style_hint
+        return await run_explain_pipeline(user_prompt, on_event=on_event)
+    if mode in (WorkflowMode.BOTH, WorkflowMode.TEACH):
+        return await run_teach_pipeline(
+            user_prompt,
+            examples=examples,
+            style_hint=style_hint,
+            on_event=on_event,
+            session_log=session_log,
         )
     return await run_diagram_pipeline(
-        user_prompt, examples=examples, style_hint=style_hint
+        user_prompt,
+        examples=examples,
+        style_hint=style_hint,
+        on_event=on_event,
     )
