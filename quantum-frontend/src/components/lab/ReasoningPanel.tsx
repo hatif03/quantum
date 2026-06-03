@@ -1,3 +1,4 @@
+import { isReasoningTraceLeak } from "../../api/cotLeak";
 import type { MathExplanation } from "../../api/types";
 import { MathBlock, renderMixedLatex } from "../sketch/MathBlock";
 import "./ReasoningPanel.css";
@@ -83,12 +84,13 @@ export function ReasoningPanel({
         </section>
       )}
 
-      {explanation.reasoning_trace && (
-        <section className="reasoning-panel__trace">
-          <h4>K2 Think reasoning</h4>
-          <p>{renderMixedLatex(explanation.reasoning_trace)}</p>
-        </section>
-      )}
+      {explanation.reasoning_trace &&
+        !isReasoningTraceLeak(explanation.reasoning_trace) && (
+          <section className="reasoning-panel__trace">
+            <h4>K2 Think reasoning</h4>
+            <p>{renderMixedLatex(explanation.reasoning_trace)}</p>
+          </section>
+        )}
     </div>
   );
 }

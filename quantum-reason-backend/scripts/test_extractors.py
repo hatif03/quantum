@@ -13,9 +13,12 @@ from quantum_reason_adk.response_extractors import (  # noqa: E402
     build_diagram_lesson_fallback,
     extract_diagram_lesson,
     extract_json_object,
+    is_cot_leak,
     is_math_schema_echo,
+    is_reasoning_trace_blob,
     is_valid_tikz,
     normalize_tikz_string,
+    sanitize_reasoning_trace,
 )
 
 LESSON = r"""
@@ -129,11 +132,20 @@ def test_session_log_picks_compton() -> None:
     assert not is_math_schema_echo(math)
 
 
+def test_cot_and_reasoning_trace() -> None:
+    assert is_cot_leak("In JSON strings, literal backslash must be escaped")
+    blob = '{"derivation_steps": [{"panel_id": "panel_5", "latex": ["eq"]}]}'
+    assert is_reasoning_trace_blob(blob)
+    assert sanitize_reasoning_trace(blob) is None
+    assert sanitize_reasoning_trace("Short educator summary of the physics.") is not None
+
+
 def main() -> int:
     test_begin_feyn_escapes()
     test_corrupt_normalize()
     test_schema_echo_rejected()
     test_session_log_picks_compton()
+    test_cot_and_reasoning_trace()
 
     lesson = extract_diagram_lesson(LESSON)
     assert lesson and lesson["panels"][0].get("tikz"), "diagram lesson failed"

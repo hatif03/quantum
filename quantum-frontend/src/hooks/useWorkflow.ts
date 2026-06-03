@@ -91,6 +91,9 @@ export function useWorkflow() {
         setActiveStep("error");
       } finally {
         setRunning(false);
+        setThinkingText("");
+        setThinkingPhase("");
+        thinkingPhaseRef.current = "";
       }
     },
     [prompt, mode],

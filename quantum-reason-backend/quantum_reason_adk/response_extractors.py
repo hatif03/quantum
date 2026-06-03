@@ -19,6 +19,20 @@ _COT_LEAK_MARKERS = (
     "put your final answer only",
     '{"id": "panel_1", "title": "short title"',
     '"purpose": "what this panel should visualize"',
+    "json strings",
+    "escape sequence",
+    "double backslash",
+    "literal backslash",
+    "valid json",
+    "json.loads",
+    "must be escaped",
+)
+
+_REASONING_TRACE_JSON_MARKERS = (
+    '"derivation_steps"',
+    '"panel_id"',
+    '"key_equations"',
+    '"common_mistake"',
 )
 
 _MATH_SCHEMA_MARKERS = (
@@ -59,7 +73,36 @@ def is_cot_leak(text: str) -> bool:
         return True
     if lower.startswith("we need to answer") or lower.startswith("let me"):
         return True
+    if len(text) > 2000 and ("```json" in lower or '"derivation_steps"' in lower):
+        return True
     return False
+
+
+def is_reasoning_trace_blob(text: str) -> bool:
+    """True if reasoning_trace looks like embedded JSON, not educator prose."""
+    if not text or len(text.strip()) < 40:
+        return False
+    lower = text.lower()
+    if sum(1 for m in _REASONING_TRACE_JSON_MARKERS if m in lower) >= 2:
+        return True
+    if '"derivation_steps"' in lower or ('"panel_id"' in lower and '"latex"' in lower):
+        return True
+    if text.count("{") >= 4 and text.count('"') >= 12:
+        return True
+    if is_cot_leak(text):
+        return True
+    return False
+
+
+def sanitize_reasoning_trace(raw: Any, *, max_len: int = 800) -> Optional[str]:
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if not text or is_reasoning_trace_blob(text):
+        return None
+    if len(text) > max_len:
+        return text[:max_len].rstrip() + "…"
+    return text
 
 
 def _escape_latex_in_json_source(blob: str) -> str:

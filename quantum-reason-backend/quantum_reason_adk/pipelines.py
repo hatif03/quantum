@@ -60,10 +60,21 @@ async def run_diagram_pipeline(
     return state
 
 
+def _safe_explain_summary(math: Optional[dict[str, Any]]) -> str:
+    """User-facing summary only — never raw K2 chain-of-thought."""
+    if not math:
+        return ""
+    topic = str(math.get("topic") or "").strip()
+    if topic:
+        return topic
+    return ""
+
+
 async def run_explain_pipeline(
     user_prompt: str,
     *,
     on_event: Optional[StreamEventCallback] = None,
+    session_log: Optional[SessionLogger] = None,
 ) -> dict[str, Any]:
     text = await stream_chat(
         system=MATH_EXPLAINER_PROMPT,
@@ -71,11 +82,24 @@ async def run_explain_pipeline(
         phase="math_explainer",
         on_event=on_event,
     )
+    if session_log:
+        session_log.log_raw_response("math_explainer", text)
     math = extract_json_object(text)
-    state: dict[str, Any] = {"final_response": text, "user_request": user_prompt}
+    state: dict[str, Any] = {
+        "user_request": user_prompt,
+        "math_response": text,
+        "parse_warnings": [],
+    }
     if math:
         state["math_explanation"] = math
+        if session_log:
+            session_log.log_parsed("math_explanation", math)
+        state["final_response"] = _safe_explain_summary(math)
     else:
+        state["final_response"] = ""
+        state["parse_warnings"].append("math_explanation")
+        if session_log:
+            session_log.log_parse_warning("math_explanation")
         logger.warning("Math explainer response did not contain parseable JSON")
     return state
 
@@ -109,7 +133,9 @@ async def run_pipeline(
     session_log: Optional[SessionLogger] = None,
 ) -> dict[str, Any]:
     if mode == WorkflowMode.EXPLAIN:
-        return await run_explain_pipeline(user_prompt, on_event=on_event)
+        return await run_explain_pipeline(
+            user_prompt, on_event=on_event, session_log=session_log
+        )
     if mode in (WorkflowMode.BOTH, WorkflowMode.TEACH):
         return await run_teach_pipeline(
             user_prompt,

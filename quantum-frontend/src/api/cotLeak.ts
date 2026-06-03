@@ -9,19 +9,46 @@ export function isCotLeak(text: string): boolean {
     "lesson planner for quantum reason",
     "we need to answer as the",
     "diagram lesson generator",
+    "json strings",
+    "escape sequence",
+    "double backslash",
+    "literal backslash",
+    "valid json",
+    "must be escaped",
   ];
   const hits = markers.filter((m) => lower.includes(m)).length;
   if (hits >= 2) return true;
   if (hits >= 1 && (lower.includes("schema") || lower.includes("lesson planner"))) {
     return true;
   }
+  if (text.length > 2000 && (lower.includes("```json") || lower.includes('"derivation_steps"'))) {
+    return true;
+  }
   return lower.startsWith("we need to answer") || lower.startsWith("let me ");
+}
+
+/** reasoning_trace field contains JSON debris, not short educator prose. */
+export function isReasoningTraceLeak(text: string): boolean {
+  if (!text || text.trim().length < 40) return false;
+  const lower = text.toLowerCase();
+  if (lower.includes('"derivation_steps"')) return true;
+  if (lower.includes('"panel_id"') && lower.includes('"latex"')) return true;
+  if ((text.match(/\{/g) ?? []).length >= 4 && (text.match(/"/g) ?? []).length >= 12) {
+    return true;
+  }
+  return isCotLeak(text);
 }
 
 export function displaySummary(result: {
   summary?: string | null;
   diagram_lesson?: { summary?: string } | null;
   lesson_plan?: { process_name?: string; teaching_goals?: string[] } | null;
+  math_explanation?: {
+    topic?: string;
+    prerequisites?: string[];
+    key_equations?: string[];
+    derivation_steps?: { title?: string; prose?: string }[];
+  } | null;
 }): string | null {
   const lessonSummary = result.diagram_lesson?.summary?.trim();
   if (lessonSummary) return lessonSummary;
@@ -35,6 +62,11 @@ export function displaySummary(result: {
 
   const raw = result.summary?.trim();
   if (raw && !isCotLeak(raw)) return raw;
+
+  const math = result.math_explanation;
+  const topic = math?.topic?.trim();
+  if (topic && math && !isMathSchemaEcho(math)) return topic;
+
   return null;
 }
 

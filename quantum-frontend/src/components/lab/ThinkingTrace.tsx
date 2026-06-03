@@ -22,8 +22,9 @@ export function ThinkingTrace({
   phase,
   text,
   running,
-  defaultOpen = true,
+  defaultOpen,
 }: ThinkingTraceProps) {
+  const open = defaultOpen ?? running;
   const preRef = useRef<HTMLPreElement>(null);
   const label = PHASE_LABELS[phase] ?? PHASE_LABELS.default;
 
@@ -39,7 +40,7 @@ export function ThinkingTrace({
   }
 
   return (
-    <details className="thinking-trace" open={defaultOpen && running}>
+    <details className="thinking-trace" open={open}>
       <summary className="thinking-trace__summary">
         K2 Think — {label}
         {running && <span className="thinking-trace__live">live</span>}

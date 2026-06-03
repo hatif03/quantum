@@ -115,7 +115,7 @@ export function ChatWorkbench() {
               />
             ) : (
               <>
-                {(running || thinkingText) && (
+                {running && thinkingText && (
                   <ThinkingTrace
                     phase={thinkingPhase || activeStep}
                     text={thinkingText}

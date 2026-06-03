@@ -4,7 +4,11 @@ import json
 import logging
 from typing import Any, Optional
 
-from quantum_reason_adk.response_extractors import is_cot_leak, is_math_schema_echo
+from quantum_reason_adk.response_extractors import (
+    is_cot_leak,
+    is_math_schema_echo,
+    sanitize_reasoning_trace,
+)
 from quantum_reason_adk.schemas import (
     DerivationStep,
     DiagramLesson,
@@ -97,7 +101,9 @@ def _parse_math_explanation(raw: Any) -> Optional[MathExplanation]:
         or data.get("physicalInterpretation")
         or "",
         diagram_connection=data.get("diagram_connection") or data.get("diagramConnection"),
-        reasoning_trace=data.get("reasoning_trace") or data.get("reasoningTrace"),
+        reasoning_trace=sanitize_reasoning_trace(
+            data.get("reasoning_trace") or data.get("reasoningTrace")
+        ),
     )
 
 
@@ -216,8 +222,8 @@ def state_to_final_answer(state: dict) -> FinalAnswer:
         diagram_lesson=diagram_lesson,
         lesson_plan=lesson_plan,
     )
-    if summary and len(summary) > 500 and tikz and not diagram_lesson:
-        summary = summary[:500] + "..."
+    if summary and len(summary) > 500:
+        summary = summary[:500].rstrip() + "…"
 
     if not compile_report and tikz:
         compile_report = ValidationReport(ok=True, warnings=[], errors=[])
