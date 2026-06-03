@@ -18,6 +18,44 @@
   }
 }
 
+.chat-sidebar__toolbar {
+  padding: 0 var(--space-sm) var(--space-xs);
+  border-bottom: 1px solid var(--rule);
+}
+
+.chat-sidebar__search {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: var(--space-xs);
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 0.82rem;
+  background: var(--paper);
+}
+
+.chat-sidebar__filters {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.chat-sidebar__filter {
+  flex: 1;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.2rem;
+  cursor: pointer;
+}
+
+.chat-sidebar__filter--active {
+  background: rgba(111, 168, 216, 0.2);
+  border-color: var(--sketch-blue);
+}
+
 .chat-sidebar__header {
   display: flex;
   align-items: center;

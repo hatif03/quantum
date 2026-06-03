@@ -6,12 +6,15 @@ interface ChatSidebarProps {
   conversations: Conversation[];
   activeConversationId: string | null;
   open: boolean;
+  sidebarFilter: "all" | "favorites";
+  onFilterChange: (filter: "all" | "favorites") => void;
   onClose: () => void;
   onCollapse: () => void;
   onSelect: (id: string) => void;
   onNewChat: () => void;
   onDelete: (id: string) => void;
   onRename: (id: string, title: string) => void;
+  onToggleStar: (id: string) => void;
 }
 
 type DateGroup = "today" | "yesterday" | "older";
@@ -53,21 +56,27 @@ export function ChatSidebar({
   conversations,
   activeConversationId,
   open,
+  sidebarFilter,
+  onFilterChange,
   onClose,
   onCollapse,
   onSelect,
   onNewChat,
   onDelete,
   onRename,
+  onToggleStar,
 }: ChatSidebarProps) {
-  const grouped = useMemo(() => groupConversations(conversations), [conversations]);
+  const [search, setSearch] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
-  const startRename = (conv: Conversation) => {
-    setRenamingId(conv.id);
-    setRenameValue(conv.title);
-  };
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return conversations;
+    return conversations.filter((c) => c.title.toLowerCase().includes(q));
+  }, [conversations, search]);
+
+  const grouped = useMemo(() => groupConversations(filtered), [filtered]);
 
   const commitRename = () => {
     if (renamingId && renameValue.trim()) {
@@ -103,6 +112,35 @@ export function ChatSidebar({
           </button>
         </div>
 
+        <div className="chat-sidebar__toolbar">
+          <input
+            type="search"
+            className="chat-sidebar__search"
+            placeholder="Search chats…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search conversations"
+          />
+          <div className="chat-sidebar__filters" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              className={`chat-sidebar__filter${sidebarFilter === "all" ? " chat-sidebar__filter--active" : ""}`}
+              onClick={() => onFilterChange("all")}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className={`chat-sidebar__filter${sidebarFilter === "favorites" ? " chat-sidebar__filter--active" : ""}`}
+              onClick={() => onFilterChange("favorites")}
+            >
+              Favorites
+            </button>
+          </div>
+        </div>
+
         <nav className="chat-sidebar__list">
           {grouped.length === 0 && (
             <p className="chat-sidebar__empty">No conversations yet.</p>
@@ -136,6 +174,7 @@ export function ChatSidebar({
                         }`}
                         onClick={() => onSelect(conv.id)}
                       >
+                        {conv.starred && <span aria-hidden="true">★ </span>}
                         {conv.title}
                       </button>
                     )}
@@ -143,7 +182,18 @@ export function ChatSidebar({
                       <button
                         type="button"
                         className="chat-sidebar__action"
-                        onClick={() => startRename(conv)}
+                        onClick={() => onToggleStar(conv.id)}
+                        aria-label={conv.starred ? "Unstar" : "Star"}
+                      >
+                        {conv.starred ? "Unstar" : "Star"}
+                      </button>
+                      <button
+                        type="button"
+                        className="chat-sidebar__action"
+                        onClick={() => {
+                          setRenamingId(conv.id);
+                          setRenameValue(conv.title);
+                        }}
                         aria-label={`Rename ${conv.title}`}
                       >
                         Rename

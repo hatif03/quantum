@@ -41,10 +41,17 @@ class WorkflowMode(str, Enum):
     TEACH = "teach"
 
 
+class ChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
 class DiagramRequest(BaseModel):
     user_prompt: str
     style_hint: Optional[str] = None
     mode: WorkflowMode = WorkflowMode.DIAGRAM
+    history: List[ChatTurn] = Field(default_factory=list)
+    prior_tikz: Optional[str] = None
 
 
 class ExplainRequest(BaseModel):
@@ -78,6 +85,20 @@ class ValidationReport(BaseModel):
     errors: List[str] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
     details: Optional[str] = None
+
+
+class CompileRequest(BaseModel):
+    tikz: str
+
+
+class CompileResponse(BaseModel):
+    ok: bool
+    tikz_image: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    errors: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    compile_report: Optional[ValidationReport] = None
 
 
 class RuleValidationReport(BaseModel):
@@ -118,6 +139,7 @@ class DiagramPanel(BaseModel):
     image_width: Optional[int] = None
     image_height: Optional[int] = None
     compile_ok: Optional[bool] = None
+    compile_errors: List[str] = Field(default_factory=list)
 
 
 class DiagramLesson(BaseModel):
@@ -132,6 +154,12 @@ class DerivationStep(BaseModel):
     panel_id: Optional[str] = None
     intuition: Optional[str] = None
     common_mistake: Optional[str] = None
+
+
+class QuizQuestion(BaseModel):
+    id: str
+    question: str
+    answer: str
 
 
 class MathExplanation(BaseModel):
@@ -163,6 +191,8 @@ class FinalAnswer(BaseModel):
     workflow_step: Optional[str] = None
     parse_warnings: List[str] = Field(default_factory=list)
     debug_session_id: Optional[str] = None
+    quiz_questions: List[QuizQuestion] = Field(default_factory=list)
+    convention_warnings: List[str] = Field(default_factory=list)
 
 
 class ExplainResponse(BaseModel):

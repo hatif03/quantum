@@ -1,0 +1,50 @@
+.tikz-editor {
+  margin-top: var(--space-sm);
+}
+
+.tikz-editor__layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+@media (min-width: 720px) {
+  .tikz-editor:not(.tikz-editor--compact) .tikz-editor__layout {
+    grid-template-columns: 1fr min(280px, 40%);
+  }
+}
+
+.tikz-editor__area {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  padding: var(--space-sm);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  resize: vertical;
+  min-height: 12rem;
+}
+
+.tikz-editor__preview {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs);
+  background: var(--paper);
+  max-height: 280px;
+  overflow: hidden;
+}
+
+.tikz-editor__actions {
+  margin-top: var(--space-xs);
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.tikz-editor__error {
+  margin: var(--space-xs) 0 0;
+  font-size: 0.82rem;
+  color: var(--pen);
+}

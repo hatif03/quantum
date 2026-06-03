@@ -1,0 +1,86 @@
+.graph-canvas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-height: 420px;
+}
+
+.graph-canvas--compact {
+  min-height: 360px;
+}
+
+.graph-canvas__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.graph-canvas__main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+  flex: 1;
+  min-height: 0;
+}
+
+@media (min-width: 768px) {
+  .graph-canvas__main {
+    grid-template-columns: 1fr min(280px, 35%);
+  }
+}
+
+.graph-canvas__flow {
+  height: min(420px, 50vh);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.graph-canvas--compact .graph-canvas__flow {
+  height: min(360px, 45vh);
+}
+
+.graph-canvas__aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  overflow: auto;
+  max-height: min(420px, 50vh);
+}
+
+.graph-canvas__inspector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.graph-canvas__label {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  width: 100%;
+}
+
+.graph-canvas__kind--active {
+  border-color: var(--sketch-blue);
+  background: var(--sketch-wash);
+}
+
+.graph-canvas__errors {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  color: var(--pen);
+}
+
+.graph-canvas__tikz {
+  font-size: 0.68rem;
+  max-height: 120px;
+  overflow: auto;
+  margin: 0;
+  padding: var(--space-xs);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+}

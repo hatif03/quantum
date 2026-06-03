@@ -1,0 +1,11 @@
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.export-actions__btn {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.5rem;
+}

@@ -1,0 +1,46 @@
+.physics-panel {
+  margin: var(--space-sm) 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: rgba(244, 240, 232, 0.5);
+}
+
+.physics-panel__summary {
+  margin: 0 0 var(--space-xs);
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+}
+
+.physics-panel__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.physics-panel__item {
+  display: flex;
+  gap: var(--space-sm);
+  font-size: 0.85rem;
+}
+
+.physics-panel__item p {
+  margin: 0.15rem 0 0;
+  color: var(--ink-muted);
+}
+
+.physics-panel__status {
+  flex-shrink: 0;
+  font-family: var(--font-hand);
+}
+
+.physics-panel__item--pass .physics-panel__status {
+  color: var(--sketch-blue);
+}
+
+.physics-panel__item--fail .physics-panel__status {
+  color: var(--pen);
+}

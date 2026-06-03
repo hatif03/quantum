@@ -1,4 +1,4 @@
-# Quantum Reason API — FastAPI + TeX Live (pdflatex) + Poppler (pdftoppm)
+# Quantum Reason API — FastAPI + TeX Live (lualatex) + Poppler (pdftoppm)
 # for headless TikZ-Feynman diagram rendering in production.
 
 FROM python:3.12-slim-bookworm
@@ -12,10 +12,13 @@ WORKDIR /app
 # TeX packages used by quantum_reason_adk/tools/latex_compiler.py:
 # geometry, xcolor, tikz, tikz-feynman, amsmath, amssymb, physics
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ghostscript \
     poppler-utils \
     texlive-latex-base \
     texlive-latex-recommended \
     texlive-latex-extra \
+    texlive-extra-utils \
+    texlive-luatex \
     texlive-pictures \
     texlive-science \
     texlive-fonts-recommended \

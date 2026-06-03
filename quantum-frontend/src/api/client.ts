@@ -1,4 +1,4 @@
-import type { DiagramRequest, FinalAnswer, WorkflowMode } from "./types";
+import type { CompileRequest, CompileResponse, DiagramRequest, FinalAnswer, WorkflowMode } from "./types";
 import { mockGenerateDiagram } from "./mock";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
@@ -154,6 +154,46 @@ export async function generateDiagram(
   };
 
   return generateDiagramStream(req, handlers);
+}
+
+export async function compileTikz(tikz: string): Promise<CompileResponse> {
+  if (!hasBackend()) {
+    return {
+      ok: false,
+      errors: ["Backend not configured — set VITE_API_BASE_URL to compile TikZ."],
+      warnings: [],
+    };
+  }
+
+  const req: CompileRequest = { tikz };
+  try {
+    const res = await fetch(`${API_BASE}/api/compile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      throw new DiagramHttpError(
+        text || `Compile failed (${res.status})`,
+        res.status,
+      );
+    }
+
+    return (await res.json()) as CompileResponse;
+  } catch (e) {
+    if (e instanceof DiagramHttpError) {
+      throw e;
+    }
+    if (isNetworkFailure(e)) {
+      throw new DiagramNetworkError(
+        `Can't reach the physics backend at ${API_BASE}.`,
+        API_BASE,
+      );
+    }
+    throw e;
+  }
 }
 
 export type { WorkflowMode };

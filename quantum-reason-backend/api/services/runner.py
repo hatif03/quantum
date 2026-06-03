@@ -7,6 +7,7 @@ import uuid
 from collections.abc import AsyncIterator
 from typing import Any, Optional
 
+from quantum_reason_adk.agents.post_steps import apply_post_steps
 from quantum_reason_adk.k2_client import StreamEventCallback
 from quantum_reason_adk.logging.session_logger import SessionLogger
 from quantum_reason_adk.pipelines import run_pipeline
@@ -26,6 +27,8 @@ class WorkflowRunner:
         user_prompt: str,
         mode: WorkflowMode = WorkflowMode.DIAGRAM,
         style_hint: Optional[str] = None,
+        history: Optional[list] = None,
+        prior_tikz: Optional[str] = None,
         on_event: Optional[StreamEventCallback] = None,
         session_id: Optional[str] = None,
     ) -> dict[str, Any]:
@@ -49,11 +52,14 @@ class WorkflowRunner:
             user_prompt,
             examples=examples,
             style_hint=style_hint,
+            history=history,
+            prior_tikz=prior_tikz,
             on_event=on_event,
             session_log=session_log,
         )
         state["debug_session_id"] = session_id
         session_log.finalize(state)
+        apply_post_steps(state)
 
         code = state.get("tikz_code")
         if code and isinstance(code, str):
@@ -88,6 +94,8 @@ class WorkflowRunner:
         user_prompt: str,
         mode: WorkflowMode = WorkflowMode.DIAGRAM,
         style_hint: Optional[str] = None,
+        history: Optional[list] = None,
+        prior_tikz: Optional[str] = None,
         session_id: Optional[str] = None,
         on_event: Optional[StreamEventCallback] = None,
     ) -> tuple[str, dict]:
@@ -96,6 +104,8 @@ class WorkflowRunner:
             user_prompt,
             mode=mode,
             style_hint=style_hint,
+            history=history,
+            prior_tikz=prior_tikz,
             on_event=on_event,
             session_id=session_id,
         )
@@ -108,6 +118,8 @@ class WorkflowRunner:
         user_prompt: str,
         mode: WorkflowMode = WorkflowMode.DIAGRAM,
         style_hint: Optional[str] = None,
+        history: Optional[list] = None,
+        prior_tikz: Optional[str] = None,
     ) -> AsyncIterator[str]:
         """Yield SSE lines: data: {json}\\n\\n"""
         queue: asyncio.Queue[Optional[dict[str, Any]]] = asyncio.Queue()
@@ -121,6 +133,8 @@ class WorkflowRunner:
                     user_prompt,
                     mode=mode,
                     style_hint=style_hint,
+                    history=history,
+                    prior_tikz=prior_tikz,
                     on_event=on_event,
                 )
                 await queue.put({"type": "done", "answer": result})

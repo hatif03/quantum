@@ -179,6 +179,9 @@ def _parse_diagram_lesson(raw: Any, images: dict) -> Optional[DiagramLesson]:
                 image_width=item.get("image_width") or item.get("imageWidth"),
                 image_height=item.get("image_height") or item.get("imageHeight"),
                 compile_ok=item.get("compile_ok") if "compile_ok" in item else item.get("compileOk"),
+                compile_errors=item.get("compile_errors")
+                or item.get("compileErrors")
+                or [],
             )
         )
     return DiagramLesson(
@@ -245,4 +248,6 @@ def state_to_final_answer(state: dict) -> FinalAnswer:
         diagram_images=diagram_images,
         workflow_step=state.get("workflow_step") or state.get("workflowStep"),
         debug_session_id=state.get("debug_session_id") or state.get("debugSessionId"),
+        quiz_questions=state.get("quiz_questions") or [],
+        convention_warnings=state.get("convention_warnings") or [],
     )

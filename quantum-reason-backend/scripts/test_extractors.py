@@ -11,13 +11,16 @@ from quantum_reason_adk.response_extractors import (  # noqa: E402
     _escape_latex_in_json_source,
     _try_parse_json,
     build_diagram_lesson_fallback,
+    check_feynman_diagram_issues,
     extract_diagram_lesson,
     extract_json_object,
+    extract_tikz,
     is_cot_leak,
     is_math_schema_echo,
     is_reasoning_trace_blob,
     is_valid_tikz,
     normalize_tikz_string,
+    sanitize_annotation_latex,
     sanitize_reasoning_trace,
 )
 
@@ -140,12 +143,72 @@ def test_cot_and_reasoning_trace() -> None:
     assert sanitize_reasoning_trace("Short educator summary of the physics.") is not None
 
 
+COT_TIKZ_MENTION = """
+Ensure proper line break after the semicolon? The code block should be a single block of TikZ.
+Use leg syntax within `\\feynmandiagram`. Check that braces are balanced with { and }.
+We need to remove leftarrow key. Thus answer is:
+"""
+
+PANEL1_TIKZ = r"""
+\feynmandiagram [horizontal = i to e] {
+    i [particle=\(W^{-}\)] -- [charged boson] v,
+    v -- [fermion] e [particle=\(e^{-}\)],
+    v -- [antifermion] nu [particle=\(\bar{\nu}_e\)]
+};
+"""
+
+
+def test_cot_prose_not_valid_tikz() -> None:
+    assert not is_valid_tikz(COT_TIKZ_MENTION)
+    assert extract_tikz(COT_TIKZ_MENTION) is None
+
+
+def test_antifermion_passes_syntax_check() -> None:
+    issues = check_feynman_diagram_issues(PANEL1_TIKZ)
+    assert issues == [], f"unexpected issues: {issues}"
+
+
+def test_invalid_vertex_label_rejected() -> None:
+    bad = r"""
+\feynmandiagram [horizontal=a to b] {
+  i1 [particle=\(\gamma\)] -- [photon] v1,
+  v1 [label=above:-ie\gamma^\mu]
+};
+"""
+    issues = check_feynman_diagram_issues(bad)
+    assert any("label=" in i for i in issues)
+
+
+def test_z_boson_photon_style_rejected() -> None:
+    bad = r"""
+\feynmandiagram [horizontal=Z_in to V] {
+  Z_in [particle=\(Z\)] -- [photon] v1,
+  v1 -- [fermion] o1 [particle=\(e^-\)]
+};
+"""
+    issues = check_feynman_diagram_issues(bad)
+    assert any("boson" in i for i in issues)
+
+
+def test_sanitize_annotation_latex() -> None:
+    raw = ["M_Z", "vertex_factor", "-ig/\\cos\\theta_W \\\\gamma^\\mu", "k"]
+    out = sanitize_annotation_latex(raw)
+    assert "vertex_factor" not in out
+    assert "M_Z" in out
+    assert any("gamma" in s for s in out)
+
+
 def main() -> int:
     test_begin_feyn_escapes()
     test_corrupt_normalize()
     test_schema_echo_rejected()
     test_session_log_picks_compton()
     test_cot_and_reasoning_trace()
+    test_cot_prose_not_valid_tikz()
+    test_antifermion_passes_syntax_check()
+    test_invalid_vertex_label_rejected()
+    test_z_boson_photon_style_rejected()
+    test_sanitize_annotation_latex()
 
     lesson = extract_diagram_lesson(LESSON)
     assert lesson and lesson["panels"][0].get("tikz"), "diagram lesson failed"

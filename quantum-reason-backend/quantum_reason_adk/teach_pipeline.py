@@ -12,18 +12,26 @@ from .prompts.math_explainer import PROMPT as MATH_EXPLAINER_PROMPT
 from .logging.session_logger import SessionLogger
 from .response_extractors import (
     build_diagram_lesson_fallback,
+    check_feynman_diagram_issues,
     extract_diagram_lesson,
     extract_json_object,
     extract_lesson_plan,
+    extract_panel_tikz_from_lesson,
     extract_tikz,
+    is_cot_leak,
+    is_feynman_tikz,
     is_valid_tikz,
     normalize_tikz_string,
+    sanitize_annotation_latex,
 )
 from .shared_libraries.config import config
-from .tools.latex_compiler import validate_tikz_compilation
-from .tools.tikz_validation import tikz_passes_precheck
+from .tools.latex_compiler import extract_latex_log_errors, validate_tikz_compilation
 
 logger = logging.getLogger(__name__)
+
+MAX_PNG_ASPECT_RATIO = 8.0
+MIN_PNG_CONTENT_PX = 80
+MIN_PNG_DIAGRAM_PX = 120
 
 PARSE_FALLBACK_SUMMARY = (
     "Lesson outline could not be fully parsed; diagrams and math below may be incomplete."
@@ -31,7 +39,15 @@ PARSE_FALLBACK_SUMMARY = (
 
 CORRECTION_SUFFIX = (
     "\n\n**Operating Mode**: Mode 2: Code Correction. "
-    "Fix the failed TikZ using the compilation log. Output status report then ```tikz``` block only."
+    "Fix the failed TikZ using the compilation log. "
+    "Output MUST use ONLY \\feynmandiagram[horizontal=a to b] { ... } with leg syntax:\n"
+    "  i1 [particle=\\(\\gamma\\)] -- [photon] v1,\n"
+    "  v1 -- [fermion] o1 [particle=\\(e^-\\)],\n"
+    "  v1 -- [fermion] o2 [particle=\\(e^+\\)]\n"
+    "For Z/W bosons use -- [boson], not -- [photon]. "
+    "Use vertex ids i1, v1, o1, o2 only (no underscores). "
+    "Do NOT use \\vertex, \\node, or \\draw inside \\feynmandiagram. "
+    "Output status report then ```tikz``` block only."
 )
 
 
@@ -86,8 +102,20 @@ def _build_user_message(
     examples: Optional[list] = None,
     style_hint: Optional[str] = None,
     extra: Optional[str] = None,
+    history: Optional[list] = None,
+    prior_tikz: Optional[str] = None,
 ) -> str:
-    parts = [user_prompt]
+    parts: list[str] = []
+    if history:
+        parts.append("Conversation history (most recent last):")
+        for turn in history[-12:]:
+            role = turn.get("role") if isinstance(turn, dict) else turn.role
+            content = turn.get("content") if isinstance(turn, dict) else turn.content
+            parts.append(f"{role}: {content}")
+        parts.append("")
+    if prior_tikz:
+        parts.append("Previous TikZ diagram to refine:\n```tikz\n" + prior_tikz[:6000] + "\n```\n")
+    parts.append(user_prompt)
     if style_hint:
         parts.append(f"\nStyle hint: {style_hint}")
     if extra:
@@ -116,15 +144,52 @@ def _normalize_panels(lesson: dict[str, Any]) -> list[dict[str, Any]]:
                 "title": raw.get("title") or f"Step {idx + 1}",
                 "caption": raw.get("caption") or "",
                 "tikz": tikz,
-                "annotation_latex": raw.get("annotation_latex")
-                or raw.get("annotationLatex")
-                or [],
+                "annotation_latex": sanitize_annotation_latex(
+                    raw.get("annotation_latex") or raw.get("annotationLatex") or []
+                ),
                 "linked_step_index": raw.get("linked_step_index")
                 if raw.get("linked_step_index") is not None
                 else raw.get("linkedStepIndex"),
             }
         )
     return normalized
+
+
+def _png_aspect_ok(width: Optional[int], height: Optional[int]) -> bool:
+    """Reject PNGs that look like an uncropped page (tiny diagram in huge canvas)."""
+    if not width or not height or width <= 0 or height <= 0:
+        return True
+    short_side = min(width, height)
+    long_side = max(width, height)
+    ratio = long_side / short_side
+    if long_side > 1200 and short_side < MIN_PNG_CONTENT_PX:
+        return False
+    if ratio > MAX_PNG_ASPECT_RATIO and short_side < 150:
+        return False
+    return True
+
+
+def _png_content_ok(width: Optional[int], height: Optional[int]) -> bool:
+    """Reject tiny PNGs that likely contain only a label, not a full diagram."""
+    if not width or not height or width <= 0 or height <= 0:
+        return True
+    return max(width, height) >= MIN_PNG_DIAGRAM_PX
+
+
+def _resolve_panel_tikz(panel: dict[str, Any], lesson_text: str) -> str:
+    """Pick the best TikZ source for a panel (parsed JSON first, then fenced blocks)."""
+    panel_id = str(panel.get("id") or "")
+    code = normalize_tikz_string(str(panel.get("tikz") or ""))
+    if code and is_valid_tikz(code):
+        return code
+    from_lesson = extract_panel_tikz_from_lesson(lesson_text, panel_id)
+    if from_lesson and is_valid_tikz(from_lesson):
+        return from_lesson
+    if lesson_text:
+        fallback = extract_tikz(lesson_text)
+        if fallback and is_valid_tikz(fallback):
+            return normalize_tikz_string(fallback)
+    return code
 
 
 async def _compile_panel(
@@ -136,15 +201,10 @@ async def _compile_panel(
     on_event: Optional[StreamEventCallback] = None,
 ) -> dict[str, Any]:
     """Compile panel TikZ; retry with K2 correction on failure."""
-    code = panel.get("tikz") or ""
-    ok_pre, code = tikz_passes_precheck(code)
-    if not ok_pre and lesson_text:
-        recovered = extract_tikz(lesson_text)
-        if recovered:
-            ok_pre, code = tikz_passes_precheck(recovered)
-    if not ok_pre:
+    code = _resolve_panel_tikz(panel, lesson_text)
+    if not code or not is_valid_tikz(code):
         panel["compile_ok"] = False
-        panel["compile_errors"] = ["Invalid or corrupt TikZ (JSON escape damage)"]
+        panel["compile_errors"] = ["No valid TikZ block found for this panel"]
         if session_log:
             session_log.log_panel_compile(
                 str(panel.get("id")),
@@ -159,32 +219,53 @@ async def _compile_panel(
     last_log = ""
 
     for attempt in range(retries + 1):
-        result = validate_tikz_compilation(code)
-        png = result.get("png_base64")
-        analysis = result.get("analysis") or {}
-        errors = list(analysis.get("errors") or [])
-        if result.get("error"):
-            errors.append(str(result["error"]))
-        last_log = (result.get("log_content") or "")[-4000:]
-
-        log_text = result.get("log_content") or ""
-        ok = bool(result.get("success")) and png and is_valid_tikz(code)
-        if ok and log_text and "begintikzpicture" in log_text.lower():
+        syntax_issues = check_feynman_diagram_issues(code)
+        if syntax_issues:
+            errors = syntax_issues
+            last_log = "Static feynman syntax check failed (no pdflatex run)."
             ok = False
-            errors.append("Compiled output looks like corrupt TikZ text")
-        if ok:
-            panel["image_url"] = png
-            panel["image_width"] = result.get("png_width")
-            panel["image_height"] = result.get("png_height")
-            panel["compile_ok"] = True
-            if session_log:
-                session_log.log_panel_compile(
-                    str(panel.get("id")),
-                    tikz=code,
-                    ok=True,
-                    log_content=log_text,
+            png = None
+        else:
+            result = validate_tikz_compilation(code)
+            png = result.get("png_base64")
+            analysis = result.get("analysis") or {}
+            errors = extract_latex_log_errors(result.get("log_content") or "")
+            if not errors:
+                errors = list(analysis.get("errors") or [])
+            if result.get("error"):
+                errors.append(str(result["error"]))
+            last_log = (result.get("log_content") or "")[-4000:]
+
+            log_text = result.get("log_content") or ""
+            png_w = result.get("png_width")
+            png_h = result.get("png_height")
+            ok = bool(result.get("success")) and png and is_valid_tikz(code)
+            if ok and not is_feynman_tikz(code):
+                ok = False
+                errors.append("Panel TikZ must use \\feynmandiagram, not manual draw-only tikzpicture")
+            if ok and not _png_aspect_ok(png_w, png_h):
+                ok = False
+                errors.append(
+                    f"Compiled PNG looks uncropped ({png_w}x{png_h}); diagram may be too small to read"
                 )
-            return panel
+            if ok and not _png_content_ok(png_w, png_h):
+                ok = False
+                errors.append(
+                    f"Compiled diagram too small ({png_w}x{png_h}); layout likely failed"
+                )
+            if ok:
+                panel["image_url"] = png
+                panel["image_width"] = png_w
+                panel["image_height"] = png_h
+                panel["compile_ok"] = True
+                if session_log:
+                    session_log.log_panel_compile(
+                        str(panel.get("id")),
+                        tikz=code,
+                        ok=True,
+                        log_content=log_text,
+                    )
+                return panel
 
         if attempt >= retries:
             panel["compile_ok"] = False
@@ -213,8 +294,12 @@ async def _compile_panel(
             on_event=on_event,
         )
         fixed = extract_tikz(text)
-        if fixed:
-            code = fixed
+        if (
+            fixed
+            and is_feynman_tikz(fixed)
+            and not is_cot_leak(fixed)
+        ):
+            code = normalize_tikz_string(fixed)
             panel["tikz"] = code
 
     panel["compile_ok"] = False
@@ -226,6 +311,8 @@ async def run_teach_pipeline(
     *,
     examples: Optional[list] = None,
     style_hint: Optional[str] = None,
+    history: Optional[list] = None,
+    prior_tikz: Optional[str] = None,
     on_event: Optional[StreamEventCallback] = None,
     session_log: Optional[SessionLogger] = None,
 ) -> dict[str, Any]:
@@ -238,7 +325,9 @@ async def run_teach_pipeline(
     await _emit_step(on_event, "lesson_planner")
     plan_text = await stream_chat(
         system=LESSON_PLANNER_PROMPT,
-        user=_build_user_message(user_prompt, style_hint=style_hint),
+        user=_build_user_message(
+            user_prompt, style_hint=style_hint, history=history, prior_tikz=prior_tikz
+        ),
         phase="lesson_planner",
         on_event=on_event,
     )
@@ -264,6 +353,8 @@ async def run_teach_pipeline(
         user_prompt,
         examples=examples,
         style_hint=style_hint,
+        history=history,
+        prior_tikz=prior_tikz,
         extra=f"\n\nLesson plan to follow:\n{plan_json}",
     )
     lesson_text = await stream_chat(

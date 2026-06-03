@@ -1,4 +1,5 @@
 import type { ProcessExample } from "../../api/types";
+import { DiagramImage } from "./DiagramImage";
 import { DiagramPreview } from "./DiagramPreview";
 import { DiagramStage } from "./DiagramStage";
 import "./TikzDiagram.css";
@@ -14,24 +15,17 @@ interface TikzDiagramProps {
 export function TikzDiagram({
   example,
   tikzImage,
-  imageWidth,
-  imageHeight,
   animating = false,
 }: TikzDiagramProps) {
   if (tikzImage) {
     return (
       <div className="tikz-diagram">
-        <DiagramStage
+        <DiagramImage
+          src={tikzImage}
+          alt={`Compiled Feynman diagram: ${example.title}`}
           label={`Feynman diagram: ${example.title}`}
-          aspectWidth={imageWidth ?? undefined}
-          aspectHeight={imageHeight ?? undefined}
-        >
-          <img
-            src={tikzImage}
-            alt={`Compiled Feynman diagram: ${example.title}`}
-            className="tikz-diagram__image"
-          />
-        </DiagramStage>
+          className="tikz-diagram__image-wrap"
+        />
         <p className="tikz-diagram__caption">{example.short}</p>
       </div>
     );

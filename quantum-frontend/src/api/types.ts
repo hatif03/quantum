@@ -6,6 +6,27 @@ export interface DiagramRequest {
   user_prompt: string;
   style_hint?: string | null;
   mode?: WorkflowMode;
+  history?: ChatTurn[];
+  prior_tikz?: string | null;
+}
+
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface CompileRequest {
+  tikz: string;
+}
+
+export interface CompileResponse {
+  ok: boolean;
+  tikz_image?: string | null;
+  width?: number | null;
+  height?: number | null;
+  errors: string[];
+  warnings: string[];
+  compile_report?: ValidationReport | null;
 }
 
 export interface TikzSnippet {
@@ -58,6 +79,7 @@ export interface DiagramPanel {
   image_width?: number | null;
   image_height?: number | null;
   compile_ok?: boolean | null;
+  compile_errors?: string[];
 }
 
 export interface DiagramLesson {
@@ -98,6 +120,14 @@ export interface FinalAnswer {
   workflow_step?: string | null;
   parse_warnings?: string[];
   debug_session_id?: string | null;
+  quiz_questions?: QuizQuestion[];
+  convention_warnings?: string[];
+}
+
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  answer: string;
 }
 
 export type WorkflowStepId =

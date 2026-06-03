@@ -20,6 +20,8 @@ async def generate_diagram(req: DiagramRequest):
             user_prompt=req.user_prompt,
             mode=req.mode,
             style_hint=req.style_hint,
+            history=[t.model_dump() for t in req.history],
+            prior_tikz=req.prior_tikz,
             session_id=session_id,
         )
         return FinalAnswer(**result)
@@ -35,6 +37,8 @@ async def generate_diagram_stream(req: DiagramRequest):
             user_prompt=req.user_prompt,
             mode=req.mode,
             style_hint=req.style_hint,
+            history=[t.model_dump() for t in req.history],
+            prior_tikz=req.prior_tikz,
         ),
         media_type="text/event-stream",
         headers={

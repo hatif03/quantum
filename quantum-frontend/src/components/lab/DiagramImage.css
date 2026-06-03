@@ -1,0 +1,65 @@
+.diagram-image {
+  width: 100%;
+  max-height: min(420px, 60vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  position: relative;
+}
+
+.diagram-image .zoomable-image {
+  width: 100%;
+  max-height: min(420px, 60vh);
+}
+
+.diagram-image .zoomable-image--static {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: min(420px, 60vh);
+}
+
+.diagram-image__full-view {
+  position: absolute;
+  top: var(--space-xs, 0.35rem);
+  right: var(--space-xs, 0.35rem);
+  z-index: 2;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  opacity: 0.85;
+  background: var(--paper, #f4f0e8);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.diagram-image__full-view:hover {
+  opacity: 1;
+}
+
+.diagram-image__img,
+.diagram-image__img.zoomable-image__img--static {
+  max-height: min(400px, 58vh);
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.diagram-image__modal-view {
+  min-height: 20rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diagram-image__modal-view .zoomable-image {
+  width: 100%;
+}
+
+.diagram-image__modal-view .zoomable-image__viewport {
+  min-height: 18rem;
+  max-height: min(70vh, 640px);
+}
+
+.diagram-image__modal-view .zoomable-image__img {
+  max-height: min(65vh, 600px);
+}

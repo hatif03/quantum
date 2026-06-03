@@ -16,6 +16,7 @@
 
 import base64
 import logging
+import os
 import re
 import shutil
 import struct
@@ -31,20 +32,23 @@ logger = logging.getLogger(__name__)
 PAPER_RGB = (244, 240, 232)
 PNG_DPI = 250
 STANDALONE_BORDER_PT = 2
+PDFCROP_MARGINS = os.getenv("PDFCROP_MARGINS", "12").strip() or "12"
+DEFAULT_TEX_COMMAND = os.getenv("LATEX_COMMAND", "lualatex").strip() or "lualatex"
 
 
 class LaTeXCompiler:
     """LaTeX compiler for TikZ-Feynman diagrams."""
     
-    def __init__(self, tex_command: str = "pdflatex", working_dir: Optional[str] = None):
+    def __init__(self, tex_command: Optional[str] = None, working_dir: Optional[str] = None):
         """
         Initialize LaTeX compiler.
         
         Args:
-            tex_command: LaTeX command to use (pdflatex, lualatex, xelatex)
+            tex_command: LaTeX command to use (lualatex, pdflatex, xelatex).
+                         Defaults to LATEX_COMMAND env or lualatex.
             working_dir: Working directory for compilation (None for temp dir)
         """
-        self.tex_command = tex_command
+        self.tex_command = tex_command or DEFAULT_TEX_COMMAND
         self.working_dir = working_dir
         self._check_tex_installation()
     
@@ -85,7 +89,7 @@ class LaTeXCompiler:
             # Write LaTeX file
             tex_file.write_text(full_document, encoding='utf-8')
             
-            # Compile with pdflatex
+            # Compile with lualatex (or LATEX_COMMAND override)
             result = self._run_compilation(tex_file)
             
             return result
@@ -146,7 +150,7 @@ class LaTeXCompiler:
         work_dir = tex_file.parent
         
         try:
-            # Run pdflatex twice for proper references
+            # Run LaTeX twice for proper references
             for run_num in range(2):
                 result = subprocess.run(
                     [
@@ -259,12 +263,26 @@ class LaTeXCompiler:
             ]
         }
         
-        # Search for errors in log content
-        for error_type, patterns in error_patterns.items():
-            for pattern in patterns:
-                if re.search(pattern, log_content, re.IGNORECASE):
-                    analysis["error_type"] = error_type
-                    analysis["errors"].append(f"{error_type}: Pattern '{pattern}' found")
+        # Prefer actual LaTeX error lines over generic pattern matches
+        log_errors = self.extract_log_errors(log_content)
+        if log_errors:
+            analysis["errors"] = log_errors
+            if "Undefined control sequence" in log_content:
+                analysis["error_type"] = "undefined_command"
+            elif "Package pgf Error" in log_content or "Package tikz Error" in log_content:
+                analysis["error_type"] = "tikz_error"
+            else:
+                analysis["error_type"] = analysis["error_type"] or "syntax_error"
+        else:
+            # Fallback pattern scan when log has no classic ! lines
+            for error_type, patterns in error_patterns.items():
+                for pattern in patterns:
+                    if re.search(pattern, log_content, re.IGNORECASE):
+                        analysis["error_type"] = error_type
+                        analysis["errors"].append(f"{error_type}: {pattern}")
+                        break
+                if analysis["errors"]:
+                    break
         
         # Check for warnings
         warning_patterns = [
@@ -329,7 +347,7 @@ class LaTeXCompiler:
         cropped = pdf_file.parent / f"{pdf_file.stem}-crop.pdf"
         try:
             subprocess.run(
-                [pdfcrop, "--margins", "2", str(pdf_file), str(cropped)],
+                [pdfcrop, "--margins", PDFCROP_MARGINS, str(pdf_file), str(cropped)],
                 capture_output=True,
                 text=True,
                 timeout=20,
@@ -386,11 +404,64 @@ class LaTeXCompiler:
             logger.warning("PDF to PNG conversion failed: %s", exc)
             return None, None, None
 
+    @staticmethod
+    def extract_log_errors(log_content: str, limit: int = 8) -> List[str]:
+        """Extract human-readable error lines from a pdflatex .log file."""
+        if not log_content:
+            return []
+        errors: List[str] = []
+        lines = log_content.splitlines()
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if not stripped.startswith("!"):
+                continue
+            msg = stripped.lstrip("! ").strip()
+            if msg and msg not in errors:
+                errors.append(msg)
+            if i + 1 < len(lines):
+                ctx = lines[i + 1].strip()
+                if ctx.startswith("l.") and ctx not in errors:
+                    errors.append(ctx)
+            if len(errors) >= limit:
+                break
+        return errors
+
+    @staticmethod
+    def extract_layout_warnings(log_content: str, limit: int = 4) -> List[str]:
+        """Flag tikz-feynman layout keys ignored because LuaTeX/graph drawing is unavailable."""
+        if not log_content:
+            return []
+        warnings: List[str] = []
+        for line in log_content.splitlines():
+            if "requires LuaTeX" not in line and "will be ignored" not in line:
+                continue
+            if "horizontal" not in line.lower() and "graph drawing" not in line.lower():
+                continue
+            msg = line.strip()
+            if msg and msg not in warnings:
+                warnings.append(msg)
+            if len(warnings) >= limit:
+                break
+        if warnings:
+            return [
+                "TikZ-Feynman layout failed: horizontal/graph-drawing keys require LuaTeX. "
+                "Ensure the server compiles with lualatex."
+            ]
+        return []
+
+
+def extract_latex_log_errors(log_content: str, limit: int = 8) -> List[str]:
+    """Public helper to parse LaTeX log errors and layout failures."""
+    errors = LaTeXCompiler.extract_log_errors(log_content, limit=limit)
+    layout = LaTeXCompiler.extract_layout_warnings(log_content, limit=2)
+    combined = layout + [e for e in errors if e not in layout]
+    return combined[:limit]
+
 
 def validate_tikz_compilation(tikz_code: str, packages: Optional[List[str]] = None) -> Dict:
     """
     Convenience function to validate TikZ code compilation.
-    Returns failure dict if pdflatex is not installed.
+    Returns failure dict if lualatex is not installed.
     """
     try:
         compiler = LaTeXCompiler()
@@ -403,7 +474,7 @@ def validate_tikz_compilation(tikz_code: str, packages: Optional[List[str]] = No
             "error": str(exc),
             "analysis": {
                 "error_type": "system_error",
-                "warnings": ["pdflatex not available"],
+                "warnings": [f"{DEFAULT_TEX_COMMAND} not available"],
                 "suggestions": ["Install TeX Live or rely on heuristic validation"],
             },
         } 

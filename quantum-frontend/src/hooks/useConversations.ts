@@ -6,15 +6,22 @@ import {
 } from "../api/client";
 import type { WorkflowMode, WorkflowStepId } from "../api/types";
 import {
-  loadHistoryOpen,
-  loadPersistedState,
+  loadChatState,
+  loadHistoryOpenAsync,
+  saveChatState,
+  saveHistoryOpenAsync,
+} from "./chatStorage";
+import {
   newConversationId,
   newMessageId,
-  saveHistoryOpen,
-  savePersistedState,
+  prepareForPersistence,
   truncateTitle,
 } from "./chatPersistence";
 import type { ChatMessage, Conversation } from "../types/chat";
+import {
+  buildDiagramRequest,
+  enrichAnswerExtras,
+} from "./conversationHelpers";
 
 const STEP_MAP: Record<string, WorkflowStepId> = {
   lesson_planner: "lesson_planner",
@@ -44,35 +51,45 @@ function initialStepForMode(mode: WorkflowMode): WorkflowStepId {
 }
 
 export function useConversations() {
-  const initial = loadPersistedState();
-  const [conversations, setConversations] = useState<Conversation[]>(
-    initial.conversations,
-  );
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
-    initial.activeConversationId,
+    null,
   );
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<WorkflowMode>("diagram");
   const [running, setRunning] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(loadHistoryOpen);
+  const [historyOpen, setHistoryOpen] = useState(true);
+  const [storageReady, setStorageReady] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    void loadChatState().then(({ conversations: loaded, activeConversationId: active }) => {
+      setConversations(loaded);
+      setActiveConversationId(active);
+      setStorageReady(true);
+    });
+    void loadHistoryOpenAsync().then(setHistoryOpen);
+  }, []);
 
   const activeConversation =
     conversations.find((c) => c.id === activeConversationId) ?? null;
 
   useEffect(() => {
+    if (!storageReady) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      savePersistedState(conversations, activeConversationId);
+      const prepared = prepareForPersistence(conversations);
+      void saveChatState(prepared, activeConversationId);
     }, SAVE_DEBOUNCE_MS);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [conversations, activeConversationId]);
+  }, [conversations, activeConversationId, storageReady]);
 
   useEffect(() => {
-    saveHistoryOpen(historyOpen);
-  }, [historyOpen]);
+    if (!storageReady) return;
+    void saveHistoryOpenAsync(historyOpen);
+  }, [historyOpen, storageReady]);
 
   const toggleHistory = useCallback(() => {
     setHistoryOpen((open) => !open);
@@ -85,6 +102,24 @@ export function useConversations() {
       );
     },
     [],
+  );
+
+  const updateMessageResult = useCallback(
+    (
+      conversationId: string,
+      messageId: string,
+      updater: (result: import("../api/types").FinalAnswer) => import("../api/types").FinalAnswer,
+    ) => {
+      updateConversation(conversationId, (conv) => ({
+        ...conv,
+        updatedAt: Date.now(),
+        messages: conv.messages.map((m) => {
+          if (m.id !== messageId || !m.result) return m;
+          return { ...m, result: updater(m.result) };
+        }),
+      }));
+    },
+    [updateConversation],
   );
 
   const updateAssistantMessage = useCallback(
@@ -127,9 +162,13 @@ export function useConversations() {
       });
 
       try {
-        const answer = await generateDiagram(
-          { user_prompt: userPrompt, mode: workflowMode },
-          (step) => {
+        const conv = conversations.find((c) => c.id === conversationId);
+        const priorMessages =
+          conv?.messages.filter((m) => m.id !== assistantMessageId) ?? [];
+        const answer = enrichAnswerExtras(
+          await generateDiagram(
+            buildDiagramRequest(priorMessages, userPrompt, workflowMode),
+            (step) => {
             updateAssistantMessage(conversationId, assistantMessageId, {
               activeStep: STEP_MAP[step] ?? "lesson_planner",
             });
@@ -163,6 +202,7 @@ export function useConversations() {
               }
             },
           },
+        ),
         );
 
         updateAssistantMessage(conversationId, assistantMessageId, {
@@ -199,69 +239,75 @@ export function useConversations() {
         setRunning(false);
       }
     },
-    [updateAssistantMessage],
+    [updateAssistantMessage, conversations],
+  );
+
+  const sendWithPrompt = useCallback(
+    async (text: string, workflowMode: WorkflowMode = mode) => {
+      const trimmed = text.trim();
+      if (!trimmed || running) return;
+
+      let conversationId = activeConversationId;
+      const now = Date.now();
+      const userMessage: ChatMessage = {
+        id: newMessageId(),
+        role: "user",
+        createdAt: now,
+        mode: workflowMode,
+        text: trimmed,
+      };
+      const assistantMessage: ChatMessage = {
+        id: newMessageId(),
+        role: "assistant",
+        createdAt: now + 1,
+        mode: workflowMode,
+        text: "",
+        status: "pending",
+      };
+
+      if (!conversationId) {
+        conversationId = newConversationId();
+        const newConv: Conversation = {
+          id: conversationId,
+          title: truncateTitle(trimmed),
+          createdAt: now,
+          updatedAt: now,
+          messages: [userMessage, assistantMessage],
+        };
+        setConversations((prev) => [newConv, ...prev]);
+        setActiveConversationId(conversationId);
+      } else {
+        updateConversation(conversationId, (conv) => ({
+          ...conv,
+          updatedAt: now,
+          title: conv.messages.length === 0 ? truncateTitle(trimmed) : conv.title,
+          messages: [...conv.messages, userMessage, assistantMessage],
+        }));
+      }
+
+      setPrompt("");
+      closeHistoryOnMobile(setHistoryOpen);
+
+      await runGeneration(
+        conversationId,
+        assistantMessage.id,
+        trimmed,
+        workflowMode,
+        false,
+      );
+    },
+    [
+      running,
+      mode,
+      activeConversationId,
+      runGeneration,
+      updateConversation,
+    ],
   );
 
   const sendMessage = useCallback(async () => {
-    const trimmed = prompt.trim();
-    if (!trimmed || running) return;
-
-    let conversationId = activeConversationId;
-    const now = Date.now();
-    const userMessage: ChatMessage = {
-      id: newMessageId(),
-      role: "user",
-      createdAt: now,
-      mode,
-      text: trimmed,
-    };
-    const assistantMessage: ChatMessage = {
-      id: newMessageId(),
-      role: "assistant",
-      createdAt: now + 1,
-      mode,
-      text: "",
-      status: "pending",
-    };
-
-    if (!conversationId) {
-      conversationId = newConversationId();
-      const newConv: Conversation = {
-        id: conversationId,
-        title: truncateTitle(trimmed),
-        createdAt: now,
-        updatedAt: now,
-        messages: [userMessage, assistantMessage],
-      };
-      setConversations((prev) => [newConv, ...prev]);
-      setActiveConversationId(conversationId);
-    } else {
-      updateConversation(conversationId, (conv) => ({
-        ...conv,
-        updatedAt: now,
-        title: conv.messages.length === 0 ? truncateTitle(trimmed) : conv.title,
-        messages: [...conv.messages, userMessage, assistantMessage],
-      }));
-    }
-
-    setPrompt("");
-    closeHistoryOnMobile(setHistoryOpen);
-
-    await runGeneration(
-      conversationId,
-      assistantMessage.id,
-      trimmed,
-      mode,
-      false,
-    );
-  }, [
-    prompt,
-    running,
-    mode,
-    activeConversationId,
-    runGeneration,
-    updateConversation,
-  ]);
+    await sendWithPrompt(prompt, mode);
+  }, [prompt, mode, sendWithPrompt]);
 
   const retryOffline = useCallback(
     async (conversationId: string, assistantMessageId: string) => {
@@ -321,6 +367,12 @@ export function useConversations() {
     );
   }, []);
 
+  const toggleStar = useCallback((id: string) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, starred: !c.starred } : c)),
+    );
+  }, []);
+
   return {
     conversations,
     activeConversation,
@@ -339,5 +391,8 @@ export function useConversations() {
     selectConversation,
     deleteConversation,
     renameConversation,
+    updateMessageResult,
+    sendWithPrompt,
+    toggleStar,
   };
 }

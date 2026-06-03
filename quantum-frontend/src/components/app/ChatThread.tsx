@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { PROCESS_EXAMPLES } from "../../api/mock";
+import type { FinalAnswer } from "../../api/types";
 import type { Conversation } from "../../types/chat";
 import { MathBlock } from "../sketch/MathBlock";
 import { AssistantMessage } from "./AssistantMessage";
@@ -9,15 +10,23 @@ import "./ChatThread.css";
 interface ChatThreadProps {
   conversation: Conversation | null;
   running: boolean;
+  comparePick?: string[];
   onExampleSelect: (prompt: string) => void;
   onRetryOffline: (assistantMessageId: string) => void;
+  onRefinement?: (prompt: string) => void;
+  onUpdateResult?: (messageId: string, result: FinalAnswer) => void;
+  onCompareSelect?: (messageId: string, userPrompt: string, result: FinalAnswer) => void;
 }
 
 export function ChatThread({
   conversation,
   running,
+  comparePick = [],
   onExampleSelect,
   onRetryOffline,
+  onRefinement,
+  onUpdateResult,
+  onCompareSelect,
 }: ChatThreadProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const messages = conversation?.messages ?? [];
@@ -60,6 +69,11 @@ export function ChatThread({
 
   return (
     <div className="chat-thread" role="log" aria-live="polite">
+      {onCompareSelect && (
+        <p className="chat-thread__compare-hint">
+          Compare mode: click two assistant replies to compare side-by-side.
+        </p>
+      )}
       <div className="chat-thread__messages">
         {messages.map((message, index) => {
           if (message.role === "user") {
@@ -78,16 +92,35 @@ export function ChatThread({
               ? messages[index - 1].text
               : "";
 
+          const isCompareSelected = comparePick.includes(message.id);
+
           return (
             <div
               key={message.id}
-              className="chat-workbench__message chat-workbench__message--assistant chat-thread__bubble"
+              className={`chat-workbench__message chat-workbench__message--assistant chat-thread__bubble${isCompareSelected ? " chat-thread__bubble--compare" : ""}`}
             >
+              {onCompareSelect && message.result && message.status === "done" && (
+                <button
+                  type="button"
+                  className="chat-thread__compare-btn btn btn--ghost"
+                  onClick={() =>
+                    onCompareSelect(message.id, userPrompt, message.result!)
+                  }
+                >
+                  {isCompareSelected ? "Selected" : "Compare"}
+                </button>
+              )}
               <AssistantMessage
                 message={message}
                 userPrompt={userPrompt}
                 running={running}
                 onRetryOffline={() => onRetryOffline(message.id)}
+                onRefinement={onRefinement}
+                onUpdateResult={
+                  onUpdateResult
+                    ? (result) => onUpdateResult(message.id, result)
+                    : undefined
+                }
               />
             </div>
           );

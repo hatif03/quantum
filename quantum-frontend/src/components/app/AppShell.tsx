@@ -1,11 +1,23 @@
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useConversations } from "../../hooks/useConversations";
+import { useRestoreDiagrams } from "../../hooks/useRestoreDiagrams";
+import type { FinalAnswer } from "../../api/types";
+import { CompareView } from "./CompareView";
 import { ChatComposer } from "./ChatComposer";
 import { ChatSidebar } from "./ChatSidebar";
 import { ChatThread } from "./ChatThread";
 import "./AppShell.css";
 
 export function AppShell() {
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const [sidebarFilter, setSidebarFilter] = useState<"all" | "favorites">("all");
+  const [comparePair, setComparePair] = useState<{
+    left: { label: string; prompt: string; result: FinalAnswer };
+    right: { label: string; prompt: string; result: FinalAnswer };
+  } | null>(null);
+  const [comparePick, setComparePick] = useState<string[]>([]);
+
   const {
     conversations,
     activeConversation,
@@ -19,16 +31,63 @@ export function AppShell() {
     toggleHistory,
     setHistoryOpen,
     sendMessage,
+    sendWithPrompt,
     retryOffline,
     startNewChat,
     selectConversation,
     deleteConversation,
     renameConversation,
+    updateMessageResult,
+    toggleStar,
   } = useConversations();
+
+  useRestoreDiagrams({ conversations, updateMessageResult });
+
+  const filteredConversations =
+    sidebarFilter === "favorites"
+      ? conversations.filter((c) => c.starred)
+      : conversations;
 
   const handleRetryOffline = (assistantMessageId: string) => {
     if (!activeConversationId) return;
     void retryOffline(activeConversationId, assistantMessageId);
+  };
+
+  const handleExampleSelect = (examplePrompt: string) => {
+    setPrompt(examplePrompt);
+    composerRef.current?.focus();
+  };
+
+  const handleCompareSelect = (messageId: string, userPrompt: string, _result: FinalAnswer) => {
+    setComparePick((prev) => {
+      const next = prev.includes(messageId)
+        ? prev.filter((id) => id !== messageId)
+        : [...prev, messageId].slice(-2);
+      if (next.length === 2 && activeConversation) {
+        const items = next
+          .map((id, i) => {
+            const idx = activeConversation.messages.findIndex((m) => m.id === id);
+            const msg = activeConversation.messages[idx];
+            const user =
+              idx > 0 && activeConversation.messages[idx - 1].role === "user"
+                ? activeConversation.messages[idx - 1].text
+                : userPrompt;
+            if (!msg?.result) return null;
+            return {
+              messageId: id,
+              label: `Diagram ${i + 1}`,
+              prompt: user,
+              result: msg.result,
+            };
+          })
+          .filter(Boolean) as { label: string; prompt: string; result: FinalAnswer }[];
+        if (items.length === 2) {
+          setComparePair({ left: items[0], right: items[1] });
+          setComparePick([]);
+        }
+      }
+      return next;
+    });
   };
 
   return (
@@ -61,6 +120,9 @@ export function AppShell() {
           </Link>
         </div>
         <div className="app-shell__header-actions">
+          <Link to="/app/build" className="btn btn--ghost app-shell__story-link">
+            Build
+          </Link>
           <Link to="/" className="btn btn--ghost app-shell__story-link">
             How it works
           </Link>
@@ -75,26 +137,46 @@ export function AppShell() {
       </header>
 
       <ChatSidebar
-        conversations={conversations}
+        conversations={filteredConversations}
         activeConversationId={activeConversationId}
         open={historyOpen}
+        sidebarFilter={sidebarFilter}
+        onFilterChange={setSidebarFilter}
         onClose={() => setHistoryOpen(false)}
         onCollapse={toggleHistory}
         onSelect={selectConversation}
         onNewChat={startNewChat}
         onDelete={deleteConversation}
         onRename={renameConversation}
+        onToggleStar={toggleStar}
       />
 
       <main className="app-shell__main">
+        {comparePair && (
+          <CompareView
+            left={comparePair.left}
+            right={comparePair.right}
+            onClose={() => setComparePair(null)}
+          />
+        )}
         <ChatThread
           conversation={activeConversation}
           running={running}
-          onExampleSelect={setPrompt}
+          comparePick={comparePick}
+          onExampleSelect={handleExampleSelect}
           onRetryOffline={handleRetryOffline}
+          onRefinement={(text) => void sendWithPrompt(text, mode)}
+          onUpdateResult={
+            activeConversationId
+              ? (messageId, result) =>
+                  updateMessageResult(activeConversationId, messageId, () => result)
+              : undefined
+          }
+          onCompareSelect={handleCompareSelect}
         />
         <div className="app-shell__composer-wrap">
           <ChatComposer
+            ref={composerRef}
             prompt={prompt}
             mode={mode}
             running={running}

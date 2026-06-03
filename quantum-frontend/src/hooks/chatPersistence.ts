@@ -1,4 +1,3 @@
-import type { FinalAnswer } from "../api/types";
 import type { Conversation, PersistedChatState } from "../types/chat";
 
 export const STORAGE_KEY = "quantum:conversations:v1";
@@ -6,35 +5,8 @@ export const ACTIVE_KEY = "quantum:activeConversationId";
 export const HISTORY_OPEN_KEY = "quantum:historyOpen:v1";
 export const MAX_CONVERSATIONS = 10;
 
-function stripImagesFromAnswer(answer: FinalAnswer): FinalAnswer {
-  const stripped: FinalAnswer = { ...answer, tikz_image: undefined, diagram_images: undefined };
-
-  if (answer.diagram_lesson?.panels) {
-    stripped.diagram_lesson = {
-      ...answer.diagram_lesson,
-      panels: answer.diagram_lesson.panels.map((panel) => ({
-        ...panel,
-        image_url: null,
-      })),
-    };
-  }
-
-  return stripped;
-}
-
-function stripImagesFromConversation(conversation: Conversation): Conversation {
-  return {
-    ...conversation,
-    messages: conversation.messages.map((message) => {
-      if (!message.result) return message;
-      return { ...message, result: stripImagesFromAnswer(message.result) };
-    }),
-  };
-}
-
 export function prepareForPersistence(conversations: Conversation[]): Conversation[] {
-  const stripped = conversations.map(stripImagesFromConversation);
-  return stripped
+  return [...conversations]
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, MAX_CONVERSATIONS);
 }

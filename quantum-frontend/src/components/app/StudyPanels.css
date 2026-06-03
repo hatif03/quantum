@@ -1,0 +1,33 @@
+.study-panels {
+  margin: var(--space-sm) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.study-panels__block {
+  padding: var(--space-sm);
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.study-panels__title {
+  margin: 0 0 var(--space-xs);
+  font-family: var(--font-hand);
+  font-size: 0.9rem;
+}
+
+.study-panels__block ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.study-panels__quiz summary {
+  cursor: pointer;
+}
+
+.study-panels__quiz p {
+  margin: 0.35rem 0 0;
+  color: var(--ink-muted);
+}

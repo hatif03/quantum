@@ -31,8 +31,20 @@ def _build_user_message(
     *,
     examples: Optional[list] = None,
     style_hint: Optional[str] = None,
+    history: Optional[list] = None,
+    prior_tikz: Optional[str] = None,
 ) -> str:
-    parts = [user_prompt]
+    parts: list[str] = []
+    if history:
+        parts.append("Conversation history (most recent last):")
+        for turn in history[-12:]:
+            role = turn.get("role") if isinstance(turn, dict) else turn.role
+            content = turn.get("content") if isinstance(turn, dict) else turn.content
+            parts.append(f"{role}: {content}")
+        parts.append("")
+    if prior_tikz:
+        parts.append("Previous TikZ diagram to refine:\n```tikz\n" + prior_tikz[:6000] + "\n```\n")
+    parts.append(user_prompt)
     if style_hint:
         parts.append(f"\nStyle hint: {style_hint}")
     if examples:
@@ -46,10 +58,18 @@ async def run_diagram_pipeline(
     *,
     examples: Optional[list] = None,
     style_hint: Optional[str] = None,
+    history: Optional[list] = None,
+    prior_tikz: Optional[str] = None,
     on_event: Optional[StreamEventCallback] = None,
 ) -> dict[str, Any]:
     system = DIAGRAM_PROMPT + DIAGRAM_SYSTEM_SUFFIX
-    user = _build_user_message(user_prompt, examples=examples, style_hint=style_hint)
+    user = _build_user_message(
+        user_prompt,
+        examples=examples,
+        style_hint=style_hint,
+        history=history,
+        prior_tikz=prior_tikz,
+    )
     text = await stream_chat(
         system=system, user=user, phase="diagram_generator", on_event=on_event
     )
@@ -129,18 +149,25 @@ async def run_pipeline(
     *,
     examples: Optional[list] = None,
     style_hint: Optional[str] = None,
+    history: Optional[list] = None,
+    prior_tikz: Optional[str] = None,
     on_event: Optional[StreamEventCallback] = None,
     session_log: Optional[SessionLogger] = None,
 ) -> dict[str, Any]:
     if mode == WorkflowMode.EXPLAIN:
+        user = _build_user_message(
+            user_prompt, history=history, prior_tikz=prior_tikz
+        )
         return await run_explain_pipeline(
-            user_prompt, on_event=on_event, session_log=session_log
+            user, on_event=on_event, session_log=session_log
         )
     if mode in (WorkflowMode.BOTH, WorkflowMode.TEACH):
         return await run_teach_pipeline(
             user_prompt,
             examples=examples,
             style_hint=style_hint,
+            history=history,
+            prior_tikz=prior_tikz,
             on_event=on_event,
             session_log=session_log,
         )
@@ -148,5 +175,7 @@ async def run_pipeline(
         user_prompt,
         examples=examples,
         style_hint=style_hint,
+        history=history,
+        prior_tikz=prior_tikz,
         on_event=on_event,
     )

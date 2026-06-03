@@ -8,10 +8,27 @@ const KATEX_MACROS: Record<string, string> = {
   "\\slashed": "\\not{#1}",
 };
 
+const ANNOTATION_PLACEHOLDERS = new Set([
+  "vertex_factor",
+  "short title",
+  "step name",
+]);
+
+/** Collapse JSON double-escapes: \\\\gamma -> \\gamma */
+function collapseEscapedLatex(s: string): string {
+  let t = s;
+  while (/\\\\[a-zA-Z]/.test(t)) {
+    t = t.replace(/\\\\([a-zA-Z])/g, "\\$1");
+  }
+  return t;
+}
+
 /** Strip $ / $$ / ${}$ wrappers so KaTeX receives bare LaTeX. */
 export function normalizeLatexInput(s: string): string {
   let t = s.trim();
   if (!t) return "";
+
+  t = collapseEscapedLatex(t);
 
   if (t.startsWith("${") && t.endsWith("}$")) {
     t = t.slice(2, -2).trim();
@@ -23,7 +40,6 @@ export function normalizeLatexInput(s: string): string {
     t = t.slice(1, -1).trim();
   }
 
-  // K2 glitch: "$ $ Vertex..." — peel stray leading/trailing dollars
   while (/^\$+\s*/.test(t)) {
     t = t.replace(/^\$+\s*/, "");
   }
@@ -32,6 +48,17 @@ export function normalizeLatexInput(s: string): string {
   }
 
   return t.trim();
+}
+
+/** Skip schema placeholders and snake_case keys that are not LaTeX. */
+export function isRenderableAnnotationLatex(raw: string): boolean {
+  const t = normalizeLatexInput(raw);
+  if (!t) return false;
+  if (ANNOTATION_PLACEHOLDERS.has(t.toLowerCase())) return false;
+  if (/^[a-z][a-z0-9_]*$/.test(t) && t.includes("_") && !t.includes("\\")) {
+    return false;
+  }
+  return true;
 }
 
 export function renderLatex(latex: string, displayMode = false): string {

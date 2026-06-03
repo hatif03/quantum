@@ -23,6 +23,7 @@ export interface Conversation {
   title: string;
   createdAt: number;
   updatedAt: number;
+  starred?: boolean;
   messages: ChatMessage[];
 }
 

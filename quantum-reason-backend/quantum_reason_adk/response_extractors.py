@@ -172,18 +172,209 @@ def normalize_tikz_string(tikz: str) -> str:
     return s
 
 
+def _skip_balanced(s: str, start: int, open_c: str, close_c: str) -> int:
+    """Return index of the matching close character, or -1."""
+    if start >= len(s) or s[start] != open_c:
+        return -1
+    depth = 0
+    for i in range(start, len(s)):
+        if s[i] == open_c:
+            depth += 1
+        elif s[i] == close_c:
+            depth -= 1
+            if depth == 0:
+                return i
+    return -1
+
+
+def extract_feynmandiagram_block(text: str, idx: int = 0) -> str:
+    """Extract one \\feynmandiagram[...]{...}; block starting at idx."""
+    if idx < 0 or idx >= len(text):
+        return ""
+    sub = text[idx:].lstrip()
+    if not sub.startswith("\\feynmandiagram"):
+        return ""
+    pos = len("\\feynmandiagram")
+    rest = sub[pos:].lstrip()
+    if rest.startswith("["):
+        bracket_end = _skip_balanced(rest, 0, "[", "]")
+        if bracket_end < 0:
+            return ""
+        rest = rest[bracket_end + 1 :].lstrip()
+    if not rest.startswith("{"):
+        return ""
+    brace_end = _skip_balanced(rest, 0, "{", "}")
+    if brace_end < 0:
+        return ""
+    prefix_len = len(sub) - len(rest)
+    block = sub[: prefix_len + brace_end + 1]
+    tail = rest[brace_end + 1 :].lstrip()
+    if tail.startswith(";"):
+        block += ";"
+    return normalize_tikz_string(block)
+
+
 def is_valid_tikz(tikz: str) -> bool:
     """Heuristic: must look like real TikZ-Feynman, not corrupted JSON debris."""
     s = normalize_tikz_string(tikz)
     if not s or len(s) < 12:
         return False
+    if is_cot_leak(s):
+        return False
     if _CORRUPT_TIKZ_RE.search(s.split("\n")[0][:80]):
         return False
-    return (
-        "\\feynmandiagram" in s
-        or "\\begin{tikzpicture}" in s
-        or "\\begin{feynman}" in s
-    )
+    if "\\feynmandiagram" in s:
+        idx = s.find("\\feynmandiagram")
+        block = extract_feynmandiagram_block(s, idx)
+        if (
+            block
+            and len(block) >= 20
+            and len(s.strip()) <= len(block) + 32
+        ):
+            return True
+    return "\\begin{tikzpicture}" in s or "\\begin{feynman}" in s
+
+
+def is_feynman_tikz(tikz: str) -> bool:
+    """Stricter check for teach panels: require tikz-feynman macro."""
+    s = normalize_tikz_string(tikz)
+    if not s or len(s) < 12:
+        return False
+    if _CORRUPT_TIKZ_RE.search(s.split("\n")[0][:80]):
+        return False
+    return "\\feynmandiagram" in s
+
+
+def tikz_passes_teach_precheck(tikz_code: str) -> tuple[bool, str]:
+    """Teach panels must use feynmandiagram, not manual draw-only tikzpicture."""
+    normalized = normalize_tikz_string(tikz_code or "")
+    if not normalized:
+        return False, ""
+    if not is_feynman_tikz(normalized):
+        return False, normalized
+    return True, normalized
+
+
+_ANNOTATION_PLACEHOLDERS = frozenset(
+    {
+        "vertex_factor",
+        "short title",
+        "step name",
+        "topic",
+        "latex for central equations",
+    }
+)
+
+
+def sanitize_annotation_latex(items: Any) -> list[str]:
+    """Drop schema placeholders and snake_case keys mistaken for LaTeX."""
+    if not isinstance(items, list):
+        return []
+    out: list[str] = []
+    for raw in items:
+        s = str(raw or "").strip()
+        if not s:
+            continue
+        lower = s.lower()
+        if lower in _ANNOTATION_PLACEHOLDERS:
+            continue
+        if re.match(r"^[a-z][a-z0-9_]*$", s) and "_" in s and "\\" not in s:
+            continue
+        out.append(s)
+    return out
+
+
+def check_feynman_diagram_issues(tikz: str) -> list[str]:
+    """Static checks for common K2 mistakes before calling pdflatex."""
+    s = normalize_tikz_string(tikz)
+    if not s or "\\feynmandiagram" not in s:
+        return []
+
+    issues: list[str] = []
+    if re.search(r"\\vertex\b", s):
+        issues.append(
+            "Do not use \\vertex inside \\feynmandiagram. "
+            "Use legs: i1 [particle=\\(e^-\\)] -- [fermion] v1"
+        )
+    if re.search(r"\\draw\b", s):
+        issues.append(
+            "Do not use \\draw inside \\feynmandiagram. "
+            "Connect particles with -- [fermion] or -- [photon]"
+        )
+    if re.search(r"\\node\b", s):
+        issues.append(
+            "Do not use \\node inside \\feynmandiagram. "
+            "Put labels in [particle=\\(...\\)] on external legs"
+        )
+    if re.search(r"(?:^|[,\s])(?:v\d+|[a-z]\d*)\s*\[label\s*=", s, re.IGNORECASE):
+        issues.append(
+            "Do not use v1 [label=...] vertex annotations inside \\feynmandiagram. "
+            "Put factors and angles in annotation_latex / caption instead"
+        )
+    if re.search(r"--\s*\[[^\]]*\blabel\s*=", s, re.IGNORECASE):
+        issues.append(
+            "Do not put label= on leg styles (-- [fermion, label=...]). "
+            "Use [particle=\\(...\\)] on external legs only"
+        )
+    if re.search(r"--\s*\[[^\]]*\bmomentum\s*=", s, re.IGNORECASE):
+        issues.append(
+            "Do not use momentum= on legs inside \\feynmandiagram. "
+            "Put momenta in annotation_latex (e.g. k, p) instead"
+        )
+    if re.search(r"horizontal\s*=\s*[^\]\n]*_", s, re.IGNORECASE):
+        issues.append(
+            "Use simple layout names in horizontal= (e.g. horizontal=a to b), "
+            "not Z_in, eMinus, or other underscore ids"
+        )
+    if re.search(
+        r"particle\s*=\s*\\?\(\\?Z[\^\\]?[\{\+\-0-9\\}]*\\?\).*--\s*\[photon\]",
+        s,
+        re.IGNORECASE,
+    ) or re.search(
+        r"particle\s*=\s*\\?\(\\?W[\^\\]?[\{\+\-0-9\\}]*\\?\).*--\s*\[photon\]",
+        s,
+        re.IGNORECASE,
+    ):
+        issues.append(
+            "Z and W boson propagators use -- [boson], not -- [photon]"
+        )
+    if re.search(r"bend\s+(?:left|right)\s*=\s*(?:[6-9]\d|\d{3,})", s, re.IGNORECASE):
+        issues.append(
+            "Keep bend left/right angles at most 45 to avoid clipped diagram legs"
+        )
+    if not re.search(
+        r"--\s*\[(?:"
+        r"fermion|anti[\s_-]*fermion|antifermion|"
+        r"photon|boson|charged[\s_-]*boson|gluon|scalar|ghost"
+        r")",
+        s,
+        re.IGNORECASE,
+    ):
+        issues.append(
+            "Missing leg syntax. Example: i1 [particle=\\(\\gamma\\)] -- [photon] v1"
+        )
+    idx = s.find("\\feynmandiagram")
+    block = extract_feynmandiagram_block(s, idx) if idx >= 0 else s
+    if block and block.count("{") != block.count("}"):
+        issues.append(
+            f"Unmatched braces in TikZ ({block.count('{')} open, {block.count('}')} close)"
+        )
+    return issues
+
+
+def extract_panel_tikz_from_lesson(lesson_text: str, panel_id: str) -> str:
+    """Return the best TikZ block for a panel id from raw lesson response text."""
+    if not lesson_text:
+        return ""
+    pid = str(panel_id or "").lower().replace("-", "_")
+    by_id = _extract_tikz_blocks_by_panel(lesson_text)
+    for key in (pid, pid.replace("panel_", "panel"), f"panel_{pid.lstrip('panel_')}"):
+        if key in by_id:
+            return by_id[key]
+    blocks = _extract_all_tikz_blocks(lesson_text)
+    if len(blocks) == 1:
+        return blocks[0]
+    return ""
 
 
 def _panel_tikz(panel: dict[str, Any]) -> str:
@@ -484,7 +675,7 @@ def _enrich_diagram_lesson_panels(
 
     by_id = _extract_tikz_blocks_by_panel(full_text)
     tikz_blocks = _extract_all_tikz_blocks(full_text)
-    default_tikz = extract_tikz(full_text)
+    used_blocks: set[str] = set()
     enriched = []
     for idx, raw in enumerate(panels):
         if not isinstance(raw, dict):
@@ -495,11 +686,18 @@ def _enrich_diagram_lesson_panels(
         if not tikz or not is_valid_tikz(tikz):
             tikz = by_id.get(pid) or by_id.get(f"panel_{idx + 1}")
             if not tikz and idx < len(tikz_blocks):
-                tikz = tikz_blocks[idx]
-            elif not tikz and default_tikz:
-                tikz = default_tikz
+                candidate = tikz_blocks[idx]
+                if candidate not in used_blocks:
+                    tikz = candidate
+            if not tikz and len(panels) == 1:
+                single = extract_tikz(full_text)
+                if single:
+                    tikz = single
         if tikz:
             panel["tikz"] = tikz
+            used_blocks.add(tikz)
+        ann = panel.get("annotation_latex") or panel.get("annotationLatex") or []
+        panel["annotation_latex"] = sanitize_annotation_latex(ann)
         enriched.append(panel)
     lesson = dict(lesson)
     lesson["panels"] = enriched
@@ -648,13 +846,18 @@ def extract_tikz(text: str) -> Optional[str]:
         if code and is_valid_tikz(code):
             return code
 
-    for marker in ("\\feynmandiagram", "\\begin{tikzpicture}"):
-        idx = text.rfind(marker)
-        if idx >= 0:
-            snippet = normalize_tikz_string(text[idx:])
-            end = snippet.find("\\end{tikzpicture}")
-            if end >= 0:
-                return snippet[: end + len("\\end{tikzpicture}")].strip()
-            return snippet.strip()
+    for idx in reversed([m.start() for m in re.finditer(r"\\feynmandiagram", text)]):
+        block = extract_feynmandiagram_block(text, idx)
+        if block and is_valid_tikz(block):
+            return block
+
+    idx = text.rfind("\\begin{tikzpicture}")
+    if idx >= 0:
+        snippet = normalize_tikz_string(text[idx:])
+        end = snippet.find("\\end{tikzpicture}")
+        if end >= 0:
+            snippet = snippet[: end + len("\\end{tikzpicture}")].strip()
+        if snippet and is_valid_tikz(snippet):
+            return snippet
 
     return None

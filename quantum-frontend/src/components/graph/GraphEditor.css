@@ -1,0 +1,64 @@
+.graph-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+.graph-editor__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--rule);
+  background: rgba(244, 240, 232, 0.95);
+}
+
+.graph-editor__back {
+  color: var(--ink-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.graph-editor__title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-scribble);
+  font-size: 1.25rem;
+}
+
+.graph-editor__body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 18rem;
+  min-height: 0;
+}
+
+.graph-editor__canvas {
+  min-height: 0;
+}
+
+.graph-editor__aside {
+  border-left: 1px solid var(--rule);
+  padding: var(--space-sm);
+  overflow-y: auto;
+}
+
+.graph-editor__errors {
+  margin: 0 0 var(--space-sm);
+  padding-left: 1rem;
+  font-size: 0.82rem;
+  color: var(--pen);
+}
+
+.graph-editor__tikz {
+  font-size: 0.7rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 900px) {
+  .graph-editor__body {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+}

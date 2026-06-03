@@ -1,8 +1,11 @@
 import { useState } from "react";
-import type { DiagramLesson, ProcessExample } from "../../api/types";
-import { MathBlock, normalizeLatexInput, renderMixedLatex } from "../sketch/MathBlock";
+import type { DiagramLesson, DiagramPanel, ProcessExample } from "../../api/types";
+import { compileTikz } from "../../api/client";
+import { MathBlock, normalizeLatexInput, isRenderableAnnotationLatex, renderMixedLatex } from "../sketch/MathBlock";
+import { DiagramImage } from "./DiagramImage";
 import { DiagramPreview } from "./DiagramPreview";
 import { DiagramStage } from "./DiagramStage";
+import { DiagramEditActions } from "../app/DiagramEditActions";
 import "./DiagramLessonView.css";
 
 interface DiagramLessonViewProps {
@@ -11,6 +14,9 @@ interface DiagramLessonViewProps {
   fallbackExample?: ProcessExample;
   activeIndex?: number;
   onActiveIndexChange?: (index: number) => void;
+  onPanelUpdate?: (panelId: string, patch: Partial<DiagramPanel>) => void;
+  onEditCode?: (panelId: string, code: string) => void;
+  onEditVisually?: (panelId: string, code: string) => void;
 }
 
 export function DiagramLessonView({
@@ -19,8 +25,12 @@ export function DiagramLessonView({
   fallbackExample,
   activeIndex: controlledIndex,
   onActiveIndexChange,
+  onPanelUpdate,
+  onEditCode,
+  onEditVisually,
 }: DiagramLessonViewProps) {
   const [internalIndex, setInternalIndex] = useState(0);
+  const [recompiling, setRecompiling] = useState(false);
   const activeIndex = controlledIndex ?? internalIndex;
   const setActiveIndex = (idx: number) => {
     onActiveIndexChange?.(idx);
@@ -37,8 +47,21 @@ export function DiagramLessonView({
   }
 
   const panel = panels[activeIndex] ?? panels[0];
-  const imageUrl =
-    panel.image_url ?? diagramImages[panel.id] ?? null;
+  const imageUrl = panel.image_url ?? diagramImages[panel.id] ?? null;
+
+  const handleRecompile = async () => {
+    if (!panel.tikz || !onPanelUpdate) return;
+    setRecompiling(true);
+    try {
+      const res = await compileTikz(panel.tikz);
+      onPanelUpdate(panel.id, {
+        image_url: res.tikz_image ?? panel.image_url,
+        compile_ok: res.ok,
+      });
+    } finally {
+      setRecompiling(false);
+    }
+  };
 
   return (
     <div className="diagram-lesson">
@@ -76,17 +99,11 @@ export function DiagramLessonView({
         )}
 
         {imageUrl ? (
-          <DiagramStage
+          <DiagramImage
+            src={imageUrl}
+            alt={panel.title}
             label={panel.title}
-            aspectWidth={panel.image_width ?? undefined}
-            aspectHeight={panel.image_height ?? undefined}
-          >
-            <img
-              src={imageUrl}
-              alt={panel.title}
-              className="diagram-lesson__image"
-            />
-          </DiagramStage>
+          />
         ) : fallbackExample ? (
           <DiagramStage label={panel.title}>
             <DiagramPreview example={fallbackExample} embedded />
@@ -98,11 +115,38 @@ export function DiagramLessonView({
           </p>
         )}
 
-        {panel.annotation_latex.length > 0 && (
+        {panel.compile_ok === false && (panel.compile_errors?.length ?? 0) > 0 && (
+          <ul className="diagram-lesson__compile-errors" role="alert">
+            {panel.compile_errors!.map((err) => (
+              <li key={err}>{err}</li>
+            ))}
+          </ul>
+        )}
+
+        <DiagramEditActions
+          hasTikz={Boolean(panel.tikz)}
+          onEditCode={
+            panel.tikz && onEditCode
+              ? () => onEditCode(panel.id, panel.tikz)
+              : undefined
+          }
+          onEditVisually={
+            panel.tikz && onEditVisually
+              ? () => onEditVisually(panel.id, panel.tikz)
+              : undefined
+          }
+          onRecompile={panel.tikz && onPanelUpdate ? () => void handleRecompile() : undefined}
+          recompiling={recompiling}
+        />
+
+        {panel.annotation_latex.filter(isRenderableAnnotationLatex).length > 0 && (
           <ul className="diagram-lesson__annotations">
-            {panel.annotation_latex.map((tex) => (
+            {panel.annotation_latex.filter(isRenderableAnnotationLatex).map((tex) => (
               <li key={tex}>
-                <MathBlock latex={normalizeLatexInput(tex)} />
+                <MathBlock
+                  latex={normalizeLatexInput(tex)}
+                  displayMode={tex.length > 28 || tex.includes("\\gamma")}
+                />
               </li>
             ))}
           </ul>
