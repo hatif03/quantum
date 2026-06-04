@@ -12,7 +12,7 @@ export function ReasoningPanel({
 }) {
   return (
     <div className="reasoning-panel">
-      <h3 className="reasoning-panel__title">{explanation.topic}</h3>
+      <h3 className="reasoning-panel__title">{renderMixedLatex(explanation.topic)}</h3>
       <p className="reasoning-panel__domain">{explanation.domain.toUpperCase()}</p>
 
       {explanation.prerequisites.length > 0 && (

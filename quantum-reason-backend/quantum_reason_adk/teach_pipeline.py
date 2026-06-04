@@ -20,12 +20,17 @@ from .response_extractors import (
     extract_tikz,
     is_cot_leak,
     is_feynman_tikz,
+    is_placeholder_tikz,
     is_valid_tikz,
     normalize_tikz_string,
     sanitize_annotation_latex,
 )
 from .shared_libraries.config import config
-from .tools.latex_compiler import extract_latex_log_errors, validate_tikz_compilation
+from .tools.latex_compiler import (
+    extract_latex_log_errors,
+    png_has_diagram_content,
+    validate_tikz_compilation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -177,12 +182,12 @@ def _png_content_ok(width: Optional[int], height: Optional[int]) -> bool:
 
 
 def _resolve_panel_tikz(panel: dict[str, Any], lesson_text: str) -> str:
-    """Pick the best TikZ source for a panel (parsed JSON first, then fenced blocks)."""
+    """Pick the best TikZ source for a panel (fenced blocks beat JSON placeholders)."""
     panel_id = str(panel.get("id") or "")
     code = normalize_tikz_string(str(panel.get("tikz") or ""))
-    if code and is_valid_tikz(code):
-        return code
     from_lesson = extract_panel_tikz_from_lesson(lesson_text, panel_id)
+    if code and is_valid_tikz(code) and not is_placeholder_tikz(code):
+        return code
     if from_lesson and is_valid_tikz(from_lesson):
         return from_lesson
     if lesson_text:
@@ -252,6 +257,13 @@ async def _compile_panel(
                 ok = False
                 errors.append(
                     f"Compiled diagram too small ({png_w}x{png_h}); layout likely failed"
+                )
+            if ok and not png_has_diagram_content(png):
+                ok = False
+                ink = result.get("png_ink_ratio")
+                errors.append(
+                    "Compiled PNG lacks visible diagram lines (layout/crop failure)"
+                    + (f"; ink ratio {ink:.4f}" if isinstance(ink, (int, float)) else "")
                 )
             if ok:
                 panel["image_url"] = png

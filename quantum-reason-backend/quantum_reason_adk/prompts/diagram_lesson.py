@@ -49,7 +49,7 @@ Z or W decay example (note **boson** line style and simple vertex ids i1, v1, o1
 \\feynmandiagram [horizontal=a to b] {
   i1 [particle=\\(Z\\)] -- [boson] v1,
   v1 -- [fermion, bend left=30] o1 [particle=\\(e^-\\)],
-  v1 -- [fermion, bend right=30] o2 [particle=\\(e^+\\)]
+  v1 -- [anti fermion, bend right=30] o2 [particle=\\(e^+\\)]
 };
 ```
 

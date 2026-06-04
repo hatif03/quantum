@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import { repairLatexSyntax } from "./mathLatexRepair";
 import "./MathBlock.css";
 
 /** QFT symbols K2 often emits; not in KaTeX by default. */
@@ -47,6 +48,7 @@ export function normalizeLatexInput(s: string): string {
     t = t.replace(/\s*\$+$/, "");
   }
 
+  t = repairLatexSyntax(t);
   return t.trim();
 }
 

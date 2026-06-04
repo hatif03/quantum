@@ -8,7 +8,7 @@
       "l^-"
     ],
     "description": "Decay of the Z boson to a lepton-antilepton pair.",
-    "tikz": "\\begin{tikzpicture}[thick]\\n  \\usetikzlibrary{arrows.meta}\\n  \\tikzset{>=Latex}\\n  \\coordinate (v) at (0,0);\\n  \\draw[boson] (-1.5,0) node[left] {$Z^0$} -- (v);\\n  \\draw[fermion] (v) -- (1.5,1) node[right] {$l^+$};\\n  \\draw[fermionbar] (v) -- (1.5,-1) node[right] {$l^-$};\\n  \\fill (v) circle (1.5pt);\\n\\end{tikzpicture}",
+    "tikz": "\\feynmandiagram [horizontal=a to b] {\\n  i1 [particle=\\(Z\\)] -- [boson] v1,\\n  v1 -- [fermion, bend left=30] o1 [particle=\\(e^-\\)],\\n  v1 -- [anti fermion, bend right=30] o2 [particle=\\(e^+\\)]\\n};",
     "source": "https://tikz.net/sm_z_decay/",
     "process_type": "decay",
     "source_type": "web"

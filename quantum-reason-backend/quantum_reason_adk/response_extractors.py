@@ -214,6 +214,30 @@ def extract_feynmandiagram_block(text: str, idx: int = 0) -> str:
     return normalize_tikz_string(block)
 
 
+_FEYNMAN_LEG_RE = re.compile(
+    r"--\s*\[(?:"
+    r"fermion|anti[\s_-]*fermion|antifermion|"
+    r"photon|boson|charged[\s_-]*boson|gluon|scalar|ghost"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def is_placeholder_tikz(tikz: str) -> bool:
+    """True for schema stubs like { ... } without real leg syntax."""
+    s = normalize_tikz_string(tikz)
+    if not s:
+        return True
+    if re.search(r"\{\s*\.\.\.\s*\}", s):
+        return True
+    if "\\feynmandiagram" in s:
+        idx = s.find("\\feynmandiagram")
+        block = extract_feynmandiagram_block(s, idx)
+        if block and not _FEYNMAN_LEG_RE.search(block):
+            return True
+    return False
+
+
 def is_valid_tikz(tikz: str) -> bool:
     """Heuristic: must look like real TikZ-Feynman, not corrupted JSON debris."""
     s = normalize_tikz_string(tikz)
@@ -222,6 +246,8 @@ def is_valid_tikz(tikz: str) -> bool:
     if is_cot_leak(s):
         return False
     if _CORRUPT_TIKZ_RE.search(s.split("\n")[0][:80]):
+        return False
+    if is_placeholder_tikz(s):
         return False
     if "\\feynmandiagram" in s:
         idx = s.find("\\feynmandiagram")
@@ -241,6 +267,8 @@ def is_feynman_tikz(tikz: str) -> bool:
     if not s or len(s) < 12:
         return False
     if _CORRUPT_TIKZ_RE.search(s.split("\n")[0][:80]):
+        return False
+    if is_placeholder_tikz(s):
         return False
     return "\\feynmandiagram" in s
 

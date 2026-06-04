@@ -34,6 +34,8 @@ PNG_DPI = 250
 STANDALONE_BORDER_PT = 2
 PDFCROP_MARGINS = os.getenv("PDFCROP_MARGINS", "12").strip() or "12"
 DEFAULT_TEX_COMMAND = os.getenv("LATEX_COMMAND", "lualatex").strip() or "lualatex"
+MIN_PNG_INK_RATIO = float(os.getenv("MIN_PNG_INK_RATIO", "0.004"))
+PNG_INK_TOLERANCE = 15
 
 
 class LaTeXCompiler:
@@ -141,8 +143,9 @@ class LaTeXCompiler:
         stripped = tikz_code.strip()
         if stripped.startswith("\\begin{tikzpicture}"):
             return stripped + "\n"
+        # feynmandiagram is a standalone macro; nesting it in tikzpicture breaks layout.
         if "\\feynmandiagram" in stripped:
-            return "\\begin{tikzpicture}\n" + stripped + "\n\\end{tikzpicture}\n"
+            return stripped + "\n"
         return stripped + "\n"
     
     def _run_compilation(self, tex_file: Path) -> Dict:
@@ -193,12 +196,17 @@ class LaTeXCompiler:
                 pdf_generated
             )
             
+            png_ink_ratio: Optional[float] = None
+            if png_base64:
+                png_ink_ratio = png_ink_ratio_from_data_url(png_base64)
+
             return {
                 "success": pdf_generated and final_result.returncode == 0,
                 "pdf_generated": pdf_generated,
                 "png_base64": png_base64,
                 "png_width": png_width,
                 "png_height": png_height,
+                "png_ink_ratio": png_ink_ratio,
                 "return_code": final_result.returncode,
                 "stdout": final_result.stdout,
                 "stderr": final_result.stderr,
@@ -448,6 +456,70 @@ class LaTeXCompiler:
                 "Ensure the server compiles with lualatex."
             ]
         return []
+
+
+def _decode_png_data_url(png_base64: str) -> Optional[bytes]:
+    if not png_base64:
+        return None
+    payload = png_base64.split(",", 1)[-1] if "," in png_base64 else png_base64
+    try:
+        return base64.b64decode(payload)
+    except (ValueError, TypeError):
+        return None
+
+
+def png_ink_ratio(
+    png_bytes: bytes,
+    *,
+    paper_rgb: Tuple[int, int, int] = PAPER_RGB,
+    tolerance: int = PNG_INK_TOLERANCE,
+) -> float:
+    """Fraction of PNG pixels that differ from the paper background color."""
+    if not png_bytes or len(png_bytes) < 24 or png_bytes[:8] != b"\x89PNG\r\n\x1a\n":
+        return 0.0
+    width, height = struct.unpack(">II", png_bytes[16:24])
+    if width <= 0 or height <= 0:
+        return 0.0
+    bg = paper_rgb
+    ink = 0
+    row_base = 26
+    for y in range(height):
+        offset = row_base + y * width * 4
+        for x in range(width):
+            i = offset + x * 4
+            if i + 2 >= len(png_bytes):
+                continue
+            px = (png_bytes[i], png_bytes[i + 1], png_bytes[i + 2])
+            if (
+                abs(px[0] - bg[0]) > tolerance
+                or abs(px[1] - bg[1]) > tolerance
+                or abs(px[2] - bg[2]) > tolerance
+            ):
+                ink += 1
+    return ink / (width * height)
+
+
+def png_ink_ratio_from_data_url(
+    png_base64: str,
+    *,
+    paper_rgb: Tuple[int, int, int] = PAPER_RGB,
+    tolerance: int = PNG_INK_TOLERANCE,
+) -> float:
+    data = _decode_png_data_url(png_base64)
+    if not data:
+        return 0.0
+    return png_ink_ratio(data, paper_rgb=paper_rgb, tolerance=tolerance)
+
+
+def png_has_diagram_content(
+    png_base64: Optional[str],
+    *,
+    min_ratio: float = MIN_PNG_INK_RATIO,
+) -> bool:
+    """True when the PNG has enough non-background pixels to be a real diagram."""
+    if not png_base64:
+        return False
+    return png_ink_ratio_from_data_url(png_base64) >= min_ratio
 
 
 def extract_latex_log_errors(log_content: str, limit: int = 8) -> List[str]:

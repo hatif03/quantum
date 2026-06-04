@@ -6,6 +6,7 @@ import os
 from typing import Any
 
 from quantum_reason_adk.schemas import DerivationStep, MathExplanation, QuizQuestion
+from quantum_reason_adk.tools.math_sanitize import sanitize_math_explanation
 
 
 def _enabled(name: str) -> bool:
@@ -77,6 +78,10 @@ def run_quiz_generator(state: dict[str, Any]) -> list[QuizQuestion]:
 
 def apply_post_steps(state: dict[str, Any]) -> dict[str, Any]:
     """Mutate state with optional convention/quiz enrichments."""
+    math = state.get("math_explanation") or state.get("mathExplanation")
+    if isinstance(math, dict) and math:
+        state["math_explanation"] = sanitize_math_explanation(math)
+
     warnings = run_convention_checker(state)
     if warnings:
         state["convention_warnings"] = warnings

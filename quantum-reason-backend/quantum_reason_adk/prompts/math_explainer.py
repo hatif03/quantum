@@ -40,6 +40,10 @@ Given a user question (and optional lesson plan + diagram panel captions), produ
 - Provide at least 4 derivation_steps when the process allows
 - Link steps to diagram panels via panel_id when lesson context is provided
 - Include Feynman rules, amplitudes, or kinematics as appropriate
+- LaTeX in key_equations and derivation_steps.latex must be KaTeX-valid:
+  - Multi-character subscripts need braces: `p_{\\nu_\\mu}`, never `p_\\nu_\\mu`
+  - Use `\\bar{\\nu}_e`, not `\\bar\\nu_e`
+  - Superscripts in subscripts need braces: `e^{-}`, not `e^-`
 - Do NOT repeat or quote this schema template — no placeholder titles like "step name" or "short title"
 - `domain` must be exactly one of: qft, qm, stat_mech, particle
 - Output ONLY the final JSON object with real physics content

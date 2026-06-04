@@ -17,6 +17,7 @@ from quantum_reason_adk.response_extractors import (  # noqa: E402
     extract_tikz,
     is_cot_leak,
     is_math_schema_echo,
+    is_placeholder_tikz,
     is_reasoning_trace_blob,
     is_valid_tikz,
     normalize_tikz_string,
@@ -77,12 +78,13 @@ FENCED_PANELS = r"""
 
 
 def test_begin_feyn_escapes() -> None:
-    raw = r'{"tikz": "\begin{tikzpicture}\feynmandiagram{}"}'
+    raw = (
+        r'{"tikz": "\feynmandiagram [horizontal=a to b] { i1 -- [fermion] v1; }"}'
+    )
     repaired = _escape_latex_in_json_source(raw)
     parsed = _try_parse_json(repaired)
     assert parsed is not None
     tikz = parsed["tikz"]
-    assert tikz.startswith("\\begin{tikzpicture}")
     assert "\\feynmandiagram" in tikz
     assert is_valid_tikz(tikz)
 
@@ -198,6 +200,12 @@ def test_sanitize_annotation_latex() -> None:
     assert any("gamma" in s for s in out)
 
 
+def test_placeholder_tikz_rejected() -> None:
+    stub = r"\feynmandiagram [horizontal=a to b] { ... };"
+    assert is_placeholder_tikz(stub)
+    assert not is_valid_tikz(stub)
+
+
 def main() -> int:
     test_begin_feyn_escapes()
     test_corrupt_normalize()
@@ -209,6 +217,7 @@ def main() -> int:
     test_invalid_vertex_label_rejected()
     test_z_boson_photon_style_rejected()
     test_sanitize_annotation_latex()
+    test_placeholder_tikz_rejected()
 
     lesson = extract_diagram_lesson(LESSON)
     assert lesson and lesson["panels"][0].get("tikz"), "diagram lesson failed"
@@ -224,7 +233,7 @@ def main() -> int:
     assert math.get("prerequisites"), "prerequisites with $ allowed"
 
     fb = build_diagram_lesson_fallback(
-        "```tikz\n\\feynmandiagram [horizontal=a to b] {}\n```",
+        "```tikz\n\\feynmandiagram [horizontal=a to b] { i1 -- [fermion] v1; }\n```",
         {"panel_outline": [{"id": "p1", "title": "T", "purpose": "x"}]},
     )
     assert fb and len(fb["panels"]) == 1, "fallback failed"
